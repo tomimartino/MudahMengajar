@@ -18,3 +18,4 @@
 - Prefers contextual, profile-driven form options: filters dropdowns to only what applies to the teacher (e.g., student school-level choices limited to the teacher's teaching_levels, keeping the student's existing level visible on edit). Confidence: 0.8
 - Prefers human-readable, friendly public URLs (custom slugs like /guru/paktomi) over random identifiers/UUIDs for shareable profile links. Confidence: 0.9
 - Prefers a dedicated custom confirmation/success page for post-action states (e.g., an "Email berhasil diverifikasi" page with a green check icon and a CTA to continue) instead of silently redirecting to the dashboard or a raw callback. Confidence: 0.7
+- Prefers branded, polished HTML email templates (inline-styled, brand-color header, single clear CTA button, plus a plain-text fallback link) over plain default provider templates like Supabase's bare "Confirm your email" text. Confidence: 0.7

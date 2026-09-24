@@ -45,18 +45,27 @@ export async function registerAction(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const origin = await getOrigin();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { emailRedirectTo: `${origin}/auth/callback?next=/email-verified` },
   });
 
   if (error) {
-    if (error.message.toLowerCase().includes("already registered")) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("already registered")) {
       return fail("Email sudah terdaftar. Silakan masuk.");
+    }
+    if (msg.includes("rate limit") || error.status === 429) {
+      return fail(
+        "Terlalu banyak percobaan pendaftaran. Tunggu sekitar 1 jam, atau nonaktifkan konfirmasi email di Supabase (Authentication → Sign In / Providers → Email)."
+      );
     }
     return fail(actionError(error));
   }
+
+  // Konfirmasi email dinonaktifkan → langsung dapat sesi, masuk ke dashboard.
+  if (data.session) redirect("/dashboard");
 
   return ok();
 }
