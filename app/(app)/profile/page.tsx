@@ -12,6 +12,7 @@ import { ExperienceSection } from "@/components/profile/experience-section";
 import { AchievementSection } from "@/components/profile/achievement-section";
 import { buildWaLink } from "@/lib/utils/whatsapp";
 import { LEARNING_MODES } from "@/lib/constants";
+import { getOrigin } from "@/lib/utils/origin";
 
 export const metadata: Metadata = { title: "Profil" };
 
@@ -42,6 +43,9 @@ export default async function ProfilePage() {
     ]);
 
   if (!profile) return null;
+
+  const origin = await getOrigin();
+  const profileUrl = `${origin}/guru/${profile.slug ?? user!.id}`;
 
   const initials = (profile.full_name || "G")
     .split(" ")
@@ -112,9 +116,7 @@ export default async function ProfilePage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <ShareProfileButton
-                url={`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/guru/${user!.id}`}
-              />
+              <ShareProfileButton url={profileUrl} />
               <PortfolioEditButton
                 initial={{
                   full_name: profile.full_name,
@@ -127,6 +129,7 @@ export default async function ProfilePage() {
                   address: profile.address,
                   teaching_levels: profile.teaching_levels ?? [],
                   learning_mode: profile.learning_mode ?? "offline",
+                  slug: profile.slug ?? "",
                 }}
                 subjects={subjects ?? []}
               />

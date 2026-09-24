@@ -23,6 +23,18 @@ export async function updatePortfolioAction(input: unknown): Promise<ActionResul
   if (!user) return fail("Tidak terautentikasi.");
 
   try {
+    // Link profil kustom harus unik di antara guru.
+    const slug = d.slug.trim() || null;
+    if (slug) {
+      const { data: slugOwner } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("slug", slug)
+        .neq("id", user.id)
+        .maybeSingle();
+      if (slugOwner) return fail("Link profil sudah dipakai guru lain.");
+    }
+
     // Tambahkan mapel baru yang belum ada (mapel lama yang masih dipakai tidak dihapus).
     const { data: existing } = await supabase
       .from("subjects")
@@ -45,6 +57,7 @@ export async function updatePortfolioAction(input: unknown): Promise<ActionResul
         timezone: d.timezone,
         teaching_levels: d.teaching_levels,
         learning_mode: d.learning_mode,
+        slug,
         headline: d.headline.trim() || null,
         bio: d.bio.trim() || null,
         rate: parseAmount(d.rate) > 0 ? String(parseAmount(d.rate)) : null,

@@ -55,6 +55,7 @@ export function PortfolioEditButton({
     address: string | null;
     teaching_levels: string[];
     learning_mode: string;
+    slug: string;
   };
   subjects: { id: string; name: string }[];
 }) {
@@ -72,6 +73,7 @@ export function PortfolioEditButton({
       subjects: subjects.map((s) => s.name),
       teaching_levels: initial.teaching_levels ?? [],
       learning_mode: (initial.learning_mode as "offline" | "online" | "hybrid") ?? "offline",
+      slug: initial.slug ?? "",
       headline: initial.headline ?? "",
       bio: initial.bio ?? "",
       rate: initial.rate ? formatRupiah(initial.rate, { withSymbol: false }) : "",
@@ -218,6 +220,26 @@ export function PortfolioEditButton({
                       <FormControl>
                         <Input placeholder="Guru Matematika — SD sampai SMA" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Link profil kustom (opsional)</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-muted-foreground">/guru/</span>
+                          <Input placeholder="mis. paktomi" {...field} />
+                        </div>
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Huruf kecil, angka, dan tanda hubung. Kosongkan untuk memakai link
+                        otomatis.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

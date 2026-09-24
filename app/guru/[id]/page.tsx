@@ -57,7 +57,7 @@ export default async function PublicProfilePage({
 
   let profile: PublicProfile | null = null;
   try {
-    const { data } = await supabase.rpc("get_public_profile", { p_profile_id: id });
+    const { data } = await supabase.rpc("get_public_profile", { p_ident: id });
     profile = data as unknown as PublicProfile;
   } catch {
     profile = null;

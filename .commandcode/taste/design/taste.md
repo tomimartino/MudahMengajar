@@ -16,3 +16,4 @@
 - Prefers pre-filled sensible defaults over blank fields (e.g., a package start date defaults to today, still editable). Confidence: 0.7
 - Prefers minimal, curated notifications focused on immediately actionable items (today's schedule, remaining package sessions, payments) over forward-looking reminders like upcoming schedules. Confidence: 0.8
 - Prefers contextual, profile-driven form options: filters dropdowns to only what applies to the teacher (e.g., student school-level choices limited to the teacher's teaching_levels, keeping the student's existing level visible on edit). Confidence: 0.8
+- Prefers human-readable, friendly public URLs (custom slugs like /guru/paktomi) over random identifiers/UUIDs for shareable profile links. Confidence: 0.9

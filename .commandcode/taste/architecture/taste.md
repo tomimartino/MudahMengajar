@@ -9,3 +9,4 @@
 - Schema should stay future-ready for SaaS/multi-tenant growth (without implementing multi-tenant now). Confidence: 0.8
 - Product targets individual tutors (guru bimbel perorangan / early-career teachers), not institutions or companies — institution-level features like finance/expense tracking are out of scope. Confidence: 0.85
 - SQL migrations should be idempotent (safe to re-run): `create table if not exists`, `add column if not exists`, and `drop policy/trigger if exists` before `create`. Confidence: 0.8
+- Prefers public-facing links (profile share, auth email redirects) to resolve from the runtime request origin rather than a hardcoded localhost fallback. Confidence: 0.7

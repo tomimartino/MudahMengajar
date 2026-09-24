@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { actionError, fail, ok } from "@/lib/actions/helpers";
+import { getOrigin } from "@/lib/utils/origin";
 import {
   forgotSchema,
   loginSchema,
@@ -43,7 +44,7 @@ export async function registerAction(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
 
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const origin = await getOrigin();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -71,7 +72,7 @@ export async function forgotPasswordAction(input: unknown): Promise<ActionResult
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
 
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const origin = await getOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${origin}/auth/callback?next=/reset-password`,
   });

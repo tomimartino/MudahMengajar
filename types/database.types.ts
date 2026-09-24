@@ -19,6 +19,7 @@ export type Database = {
           avatar_url: string | null;
           teaching_levels: string[];
           learning_mode: string;
+          slug: string | null;
           timezone: string;
           onboarding_completed: boolean;
           headline: string | null;
@@ -37,6 +38,7 @@ export type Database = {
           avatar_url?: string | null;
           teaching_levels?: string[];
           learning_mode?: string;
+          slug?: string | null;
           timezone?: string;
           onboarding_completed?: boolean;
           headline?: string | null;
@@ -54,6 +56,7 @@ export type Database = {
           avatar_url: string | null;
           teaching_levels: string[];
           learning_mode: string;
+          slug: string | null;
           timezone: string;
           onboarding_completed: boolean;
           headline: string | null;
@@ -658,7 +661,7 @@ export type Database = {
         Returns: undefined;
       };
       get_public_profile: {
-        Args: { p_profile_id: string };
+        Args: { p_ident: string };
         Returns: Json;
       };
     };

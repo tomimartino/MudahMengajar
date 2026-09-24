@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const phoneRegex = /^(\+62|62|0)8\d{7,12}$/;
+const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const portfolioSchema = z.object({
   full_name: z.string().min(2, "Nama wajib diisi."),
@@ -11,6 +12,15 @@ export const portfolioSchema = z.object({
   subjects: z.array(z.string().min(1)).min(1, "Minimal satu mata pelajaran."),
   teaching_levels: z.array(z.string().min(1)).min(1, "Pilih minimal satu jenjang."),
   learning_mode: z.enum(["offline", "online", "hybrid"]),
+  slug: z
+    .string()
+    .optional()
+    .default("")
+    .refine(
+      (v) => v === "" || (v.length >= 3 && v.length <= 30 && slugRegex.test(v)),
+      "Link profil 3-30 karakter: huruf kecil, angka, dan tanda hubung."
+    )
+    .transform((v) => v.toLowerCase()),
   headline: z.string().optional().default(""),
   bio: z.string().optional().default(""),
   rate: z.string().optional().default(""),
