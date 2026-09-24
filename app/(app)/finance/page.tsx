@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ReceiptText, Users, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
@@ -110,33 +111,31 @@ export default async function FinancePage({
       <h2 className="mb-2 mt-8 flex items-center gap-2 text-base font-semibold">
         <Wallet className="size-4 text-primary" /> Pendapatan per Bulan
       </h2>
-      <div className="overflow-x-auto rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Periode</TableHead>
-              <TableHead>Transaksi</TableHead>
-              <TableHead className="text-right">Total Pendapatan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {monthKeys.map((k) => {
-              const a = aggregates.get(k);
-              const isCurrent = k === month;
-              return (
-                <TableRow key={k} className={cn(isCurrent && "bg-primary/5")}>
-                  <TableCell className={cn("font-medium", isCurrent && "text-primary")}>
-                    {monthLabel(k)}
-                  </TableCell>
-                  <TableCell>{a?.count ?? 0}</TableCell>
-                  <TableCell className="text-right">
-                    <AmountText value={a?.total ?? 0} />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {monthKeys.map((k) => {
+          const a = aggregates.get(k);
+          const isCurrent = k === month;
+          return (
+            <Link
+              key={k}
+              href={`/finance?month=${k}`}
+              className={cn(
+                "rounded-xl border bg-card p-4 transition-colors hover:border-primary/50",
+                isCurrent && "border-primary bg-primary/5"
+              )}
+            >
+              <p className={cn("text-sm font-semibold", isCurrent && "text-primary")}>
+                {monthLabel(k)}
+              </p>
+              <p className="mt-2 text-xl font-bold tracking-tight">
+                <AmountText value={a?.total ?? 0} />
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {a?.count ?? 0} transaksi · {a?.students.size ?? 0} siswa
+              </p>
+            </Link>
+          );
+        })}
       </div>
 
       <h2 className="mb-2 mt-8 flex items-center gap-2 text-base font-semibold">

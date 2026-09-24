@@ -20,4 +20,5 @@
 - Prefers human-readable, friendly public URLs (custom slugs like /guru/paktomi) over random identifiers/UUIDs for shareable profile links. Confidence: 0.9
 - Prefers a dedicated custom confirmation/success page for post-action states (e.g., an "Email berhasil diverifikasi" page with a green check icon and a CTA to continue) instead of silently redirecting to the dashboard or a raw callback. Confidence: 0.7
 - Prefers branded, polished HTML email templates (inline-styled, brand-color header, single clear CTA button, plus a plain-text fallback link) over plain default provider templates like Supabase's bare "Confirm your email" text. Confidence: 0.7
-- Prefers simple data/statistics presentation via summary cards + tables over charts/graphs (chose a cards+table monthly-revenue page over a recharts bar chart). Confidence: 0.6
+- Prefers simple data/statistics presentation via summary cards + tables over charts/graphs; explicitly asks for monthly-income figures as cards (e.g., a grid of monthly income cards on /finance). Confidence: 0.7
+- Prefers UI labels that match the domain concept: student status in the student list/tab uses Aktif/Nonaktif (active/inactive), while Hadir (present) is reserved for attendance contexts such as the detail page. Confidence: 0.7
