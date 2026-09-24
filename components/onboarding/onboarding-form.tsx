@@ -109,23 +109,32 @@ export function OnboardingForm({
   }
 
   async function next() {
-    const valid = await form.trigger(
-      step === 0 ? ["full_name", "whatsapp"] : step === 1 ? ["subjects", "teaching_levels"] : undefined
-    );
-    if (valid) setStep((s) => s + 1);
+    try {
+      const valid = await form.trigger(
+        step === 0 ? ["full_name", "whatsapp"] : step === 1 ? ["subjects", "teaching_levels"] : undefined
+      );
+      if (valid) setStep((s) => s + 1);
+    } catch {
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
+    }
   }
 
   async function onSubmit(values: OnboardingInput) {
     setPending(true);
-    const result = await saveOnboardingAction(values);
-    if (!result.ok) {
+    try {
+      const result = await saveOnboardingAction(values);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Selamat datang di MudahMengajar!");
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
       setPending(false);
-      toast.error(result.error);
-      return;
     }
-    toast.success("Selamat datang di MudahMengajar!");
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

@@ -11,12 +11,12 @@ export async function saveOnboardingAction(input: unknown): Promise<ActionResult
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail("Tidak terautentikasi.");
-
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return fail("Tidak terautentikasi.");
+
     for (const name of parsed.data.subjects) {
       await supabase
         .from("subjects")

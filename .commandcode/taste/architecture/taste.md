@@ -10,3 +10,4 @@
 - Product targets individual tutors (guru bimbel perorangan / early-career teachers), not institutions or companies — institution-level features like finance/expense tracking are out of scope. Confidence: 0.85
 - SQL migrations should be idempotent (safe to re-run): `create table if not exists`, `add column if not exists`, and `drop policy/trigger if exists` before `create`. Confidence: 0.8
 - Prefers public-facing links (profile share, auth email redirects) to resolve from the runtime request origin rather than a hardcoded localhost fallback. Confidence: 0.7
+- Public-facing pages (e.g., the shareable teacher profile at /guru/[id]) must be viewable without any login so parents/guardians (wali murid) can open share links directly; only dashboard/account areas require authentication. Confidence: 0.85

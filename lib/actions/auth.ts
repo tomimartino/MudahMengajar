@@ -48,7 +48,7 @@ export async function registerAction(input: unknown): Promise<ActionResult> {
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { emailRedirectTo: `${origin}/auth/callback` },
+    options: { emailRedirectTo: `${origin}/auth/callback?next=/email-verified` },
   });
 
   if (error) {

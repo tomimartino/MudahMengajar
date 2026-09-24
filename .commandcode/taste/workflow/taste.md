@@ -6,3 +6,4 @@
 - Writes plans detailed enough for another implementation agent to execute without guessing requirements. Confidence: 0.8
 - When working in an existing codebase: never deletes existing features or duplicates components, and never swaps working technology without a strong reason. Confidence: 0.8
 - Prefers consolidated "one-shot" workflows: creating a primary record should auto-create its related records in the same action (e.g., adding a student also creates schedule + invoice) instead of requiring separate manual input; payment recording is deferred to the Payments page. Confidence: 0.85
+- Deploys via GitHub → Vercel: pushes to the production branch and expects the site to auto-deploy on push, so when the live site lags behind a push the diagnosis starts from the Git connection/branch rather than assuming manual redeploy. Confidence: 0.7
