@@ -596,6 +596,51 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      push_log: {
+        Row: {
+          user_id: string;
+          ref_key: string;
+          sent_at: string;
+        };
+        Insert: {
+          user_id: string;
+          ref_key: string;
+          sent_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          ref_key?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -657,6 +702,14 @@ export type Database = {
         Returns: Json;
       };
       refresh_reminders: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+      refresh_reminders_for_user: {
+        Args: { p_uid: string };
+        Returns: undefined;
+      };
+      refresh_reminders_all: {
         Args: Record<string, never>;
         Returns: undefined;
       };

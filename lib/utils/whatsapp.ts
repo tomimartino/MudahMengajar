@@ -39,6 +39,23 @@ export function invoiceReminderMessage(
   });
 }
 
+export interface InvoiceReceipt {
+  parentName: string;
+  studentName: string;
+  periodLabel: string;
+  amount: number;
+}
+
+/** Pesan bukti pembayaran lunas yang dikirim ke wali. */
+export function invoiceReceiptMessage(r: InvoiceReceipt): string {
+  return renderTemplate(DEFAULT_MESSAGE_TEMPLATES.receipt, {
+    nama_wali: r.parentName,
+    nama_siswa: r.studentName,
+    periode: r.periodLabel,
+    nominal: formatRupiah(r.amount),
+  });
+}
+
 export interface LearningReport {
   parentName: string;
   studentName: string;

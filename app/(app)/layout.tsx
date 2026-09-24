@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/app-shell";
+import { PushRegister } from "@/components/notifications/push-register";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       timezone={profile.timezone}
       unreadCount={unreadCount ?? 0}
     >
+      <PushRegister />
       {children}
     </AppShell>
   );

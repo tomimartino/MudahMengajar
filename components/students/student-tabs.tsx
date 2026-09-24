@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, NotebookPen, ReceiptText, Star } from "lucide-react";
+import { CalendarDays, ClipboardCheck, Eye, NotebookPen, ReceiptText, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceBadge, InvoiceStatusBadge, ScheduleStatusBadge, StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
@@ -465,6 +465,7 @@ export async function PaymentsTab({ studentId, timezone }: { studentId: string; 
                     <TableHead>Nominal</TableHead>
                     <TableHead>Jatuh Tempo</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-14">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -480,6 +481,13 @@ export async function PaymentsTab({ studentId, timezone }: { studentId: string; 
                       </TableCell>
                       <TableCell>
                         <InvoiceStatusBadge status={i.status} dueDate={i.due_date} today={today} />
+                      </TableCell>
+                      <TableCell>
+                        <Button asChild variant="ghost" size="icon-sm" aria-label="Lihat tagihan">
+                          <Link href={`/invoices/${i.id}`}>
+                            <Eye className="size-4" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

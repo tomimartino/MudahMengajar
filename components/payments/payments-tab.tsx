@@ -1,5 +1,7 @@
-import { ReceiptText, Wallet } from "lucide-react";
+import Link from "next/link";
+import { Eye, ReceiptText, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -167,6 +169,11 @@ export async function PaymentsTabContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
+                      <Button asChild variant="ghost" size="icon-sm" aria-label="Lihat tagihan">
+                        <Link href={`/invoices/${i.id}`}>
+                          <Eye className="size-4" />
+                        </Link>
+                      </Button>
                       {i.status !== "paid" && (
                         <RecordPaymentButton
                           students={students ?? []}

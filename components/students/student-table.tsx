@@ -1,5 +1,5 @@
 import { StudentActions } from "@/components/students/student-actions";
-import { AttendanceBadge, StatusBadge } from "@/components/shared/badges";
+import { StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -118,7 +118,7 @@ export function StudentTable({
               </TableCell>
               <TableCell>
                 {s.status === "active" ? (
-                  <AttendanceBadge status="hadir" />
+                  <StatusBadge tone="green">Aktif</StatusBadge>
                 ) : (
                   <StatusBadge tone="gray">Nonaktif</StatusBadge>
                 )}

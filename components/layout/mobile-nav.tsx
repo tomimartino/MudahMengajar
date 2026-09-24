@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
   BookOpen,
   FileBarChart,
+  Wallet,
   BadgeCheck,
   Settings,
 };
@@ -33,8 +35,8 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background md:hidden">
-      <div className="grid grid-cols-5">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background md:hidden print:hidden">
+      <div className="grid grid-cols-6">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(item.href + "/");

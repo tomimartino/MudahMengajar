@@ -15,7 +15,9 @@
 - When auto-generating a schedule from selected weekdays, the first session starts on the record's creation date if that day is selected and the start time hasn't passed yet; otherwise it begins on the next selected day (never a blanket "tomorrow"), avoiding immediately-overdue sessions. Confidence: 0.8
 - Prefers pre-filled sensible defaults over blank fields (e.g., a package start date defaults to today, still editable). Confidence: 0.7
 - Prefers minimal, curated notifications focused on immediately actionable items (today's schedule, remaining package sessions, payments) over forward-looking reminders like upcoming schedules. Confidence: 0.8
+- Wants app notifications to reach the user directly on their phone (push), not only shown in-app; when offered delivery channels, chose free browser-native Web Push over Telegram, a paid WhatsApp gateway, or email. Confidence: 0.85
 - Prefers contextual, profile-driven form options: filters dropdowns to only what applies to the teacher (e.g., student school-level choices limited to the teacher's teaching_levels, keeping the student's existing level visible on edit). Confidence: 0.8
 - Prefers human-readable, friendly public URLs (custom slugs like /guru/paktomi) over random identifiers/UUIDs for shareable profile links. Confidence: 0.9
 - Prefers a dedicated custom confirmation/success page for post-action states (e.g., an "Email berhasil diverifikasi" page with a green check icon and a CTA to continue) instead of silently redirecting to the dashboard or a raw callback. Confidence: 0.7
 - Prefers branded, polished HTML email templates (inline-styled, brand-color header, single clear CTA button, plus a plain-text fallback link) over plain default provider templates like Supabase's bare "Confirm your email" text. Confidence: 0.7
+- Prefers simple data/statistics presentation via summary cards + tables over charts/graphs (chose a cards+table monthly-revenue page over a recharts bar chart). Confidence: 0.6

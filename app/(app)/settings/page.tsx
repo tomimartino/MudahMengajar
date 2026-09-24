@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { BillingSettingsForm } from "@/components/settings/billing-settings-form";
 import { ChatTemplatesForm } from "@/components/settings/chat-templates-form";
 import { LogoutButton } from "@/components/settings/logout-button";
+import { PushSettings } from "@/components/settings/push-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -64,6 +65,15 @@ export default async function SettingsPage() {
                 }}
               />
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Notifikasi Push</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PushSettings />
           </CardContent>
         </Card>
 

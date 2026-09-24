@@ -1,6 +1,8 @@
 export const DEFAULT_MESSAGE_TEMPLATES = {
   invoice:
     "Halo Bapak/Ibu {{nama_wali}},\n\nKami mengingatkan pembayaran bimbel {{nama_siswa}} untuk periode {{periode}}.\n\nTotal: {{nominal}}\nJatuh tempo: {{jatuh_tempo}}\n\nTerima kasih.",
+  receipt:
+    "Halo Bapak/Ibu {{nama_wali}},\n\nPembayaran bimbel {{nama_siswa}} untuk periode {{periode}} sebesar {{nominal}} telah kami terima.\n\nTerima kasih.",
   report:
     "Halo Bapak/Ibu {{nama_wali}},\n\nLaporan belajar {{nama_siswa}} — {{tanggal}}.\n\nMateri: {{materi}}\nNilai: {{nilai}}\n\nCatatan: {{catatan}}\nPR: {{pr}}",
 } as const;
@@ -30,6 +32,7 @@ export const NAV_ITEMS = [
   { label: "Murid", href: "/students", icon: "Users" },
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
   { label: "Laporan", href: "/reports", icon: "FileBarChart" },
+  { label: "Keuangan", href: "/finance", icon: "Wallet" },
   { label: "Profil", href: "/profile", icon: "BadgeCheck" },
   { label: "Pengaturan", href: "/settings", icon: "Settings" },
 ] as const;
@@ -38,6 +41,7 @@ export const MOBILE_NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
   { label: "Murid", href: "/students", icon: "Users" },
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
+  { label: "Keuangan", href: "/finance", icon: "Wallet" },
   { label: "Profil", href: "/profile", icon: "BadgeCheck" },
 ] as const;
 

@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   Settings,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -23,6 +24,7 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
   BookOpen,
   FileBarChart,
+  Wallet,
   BadgeCheck,
   Settings,
 };
@@ -39,7 +41,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-svh shrink-0 flex-col border-r bg-sidebar transition-all duration-200 md:flex",
+        "sticky top-0 hidden h-svh shrink-0 flex-col border-r bg-sidebar transition-all duration-200 print:hidden md:flex",
         collapsed ? "w-16" : "w-60"
       )}
     >
