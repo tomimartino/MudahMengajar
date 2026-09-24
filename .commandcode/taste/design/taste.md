@@ -1,0 +1,18 @@
+# Design & UX Preferences
+
+- Visual style: modern, minimal, clean, professional, and friendly — not a generic admin template. Confidence: 0.9
+- Prefers light background, white cards, soft borders, rounded corners, generous spacing, and clear typography. Confidence: 0.85
+- Uses a single consistent primary color (e.g., Emerald, Indigo, or Blue). Confidence: 0.85
+- Consistent status colors: green = done/paid/present, yellow = pending/warning, red = late/absent/overdue, gray = not started. Confidence: 0.9
+- Avoids too many gradients and too many colors. Confidence: 0.85
+- Mobile-first responsive design (teachers often use phones): touch-friendly forms, large buttons, tables collapse to cards, bottom navigation or drawer. Confidence: 0.9
+- Every page has an empty state (no bare empty tables); prefers skeleton loading over spinners; every mutation shows loading/success/error feedback via toast. Confidence: 0.85
+- Prefers streamlined, minimal forms: removes optional/redundant fields when their value can be auto-derived or handled later (e.g., dropped the initial-payment section; schedule form asks only for start time and derives end time from the configured duration). Confidence: 0.85
+- Prefers schedule entry by day-of-week + time + number of meetings (system auto-fills the calendar, e.g., Mon+Wed × 12 meetings = 12 slots) over picking explicit dates/date ranges. Confidence: 0.85
+- Prefers consolidating features and avoiding duplicated UI: merges related pages into tabs (e.g., students+payments, sessions+attendance), relocates secondary features (e.g., schedule calendar) into the dashboard, and removes redundant panels when the same info is available elsewhere. Confidence: 0.8
+- Separates the public-facing profile/portfolio (identity, bio, achievements, rate, teaching history) from account settings, styled after LinkedIn; public-facing fields like learning method live on the profile so parents/guardians can see them. Confidence: 0.85
+- Prefers Profil and Pengaturan as two separate items in the avatar/user dropdown menu rather than one combined "Profil & Pengaturan" entry. Confidence: 0.8
+- When auto-generating a schedule from selected weekdays, the first session starts on the record's creation date if that day is selected and the start time hasn't passed yet; otherwise it begins on the next selected day (never a blanket "tomorrow"), avoiding immediately-overdue sessions. Confidence: 0.8
+- Prefers pre-filled sensible defaults over blank fields (e.g., a package start date defaults to today, still editable). Confidence: 0.7
+- Prefers minimal, curated notifications focused on immediately actionable items (today's schedule, remaining package sessions, payments) over forward-looking reminders like upcoming schedules. Confidence: 0.8
+- Prefers contextual, profile-driven form options: filters dropdowns to only what applies to the teacher (e.g., student school-level choices limited to the teacher's teaching_levels, keeping the student's existing level visible on edit). Confidence: 0.8

@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(node --version)",
+      "Shell(npm:*)",
+      "Shell(npx --yes create-next-app@latest . --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --turbopack --yes)",
+      "Shell(npx --yes create-next-app@latest mudahmengajar-tmp --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --turbopack --yes && xcopy /E /Y /I /Q mudahmengajar-tmp\\* . >nul && rmdir /S /Q mudahmengajar-tmp)",
+      "Shell(npx --yes shadcn@latest init -y -b emerald)",
+      "Shell(npx --yes shadcn@latest init --help)",
+      "Shell(npx --yes shadcn@latest init -y -b radix)",
+      "Shell(npx --yes shadcn@latest add -y button input label select dialog alert-dialog sheet tabs card badge skeleton dropdown-menu calendar switch textarea avatar tooltip separator form table checkbox scroll-area sonner popover alert)",
+      "Shell(dir:*)",
+      "Shell(findstr:*)",
+      "Shell(npx vitest run 2>&1)",
+      "Shell(node -e console.log(require('./node_modules/vitest/package.json').version) 2 >& 1)",
+      "Shell(node -e console.log(require('./node_modules/vitest/package.json').version))",
+      "Shell(set:*)",
+      "Shell(npx tsc --noEmit 2 >& 1)",
+      "Shell(npx --yes shadcn@latest add -y form 2 >& 1)",
+      "Shell(npx --yes shadcn@latest search form 2 >& 1)",
+      "Shell(npx --yes shadcn@latest add form -b radix 2 >& 1)",
+      "Shell(npx tsc --noEmit)",
+      "Shell(node -e \"const p='eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmY3ZsenljamV6dnZoZnF1YmhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MjAzODAsImV4cCI6MjEwNTQ5NjM4MH0'; console.log(Buffer.from(p,'base64url').toString())\")",
+      "Shell(curl -s -o NUL -w %{http_code} --max-time 15 https://sfcvlzycjezvvhfqubhn.supabase.co/rest/v1/)",
+      "Shell(echo.:*)",
+      "Shell(curl -s -o NUL -w %{http_code} --max-time 15 https://sfcvlzycjezvvhfqubhn.supabase.co/auth/v1/health)",
+      "Shell(del:*)",
+      "Shell(rmdir:*)",
+      "Shell(set \"NODE_ENV=\" && npx tsc --noEmit >nul 2>&1 && echo TSC_OK || echo TSC_FAIL & npm run lint 2>&1 | findstr /C:\"problems\" & npm run test 2>&1 | findstr /C:\"Tests \" & npm run build 2>&1 | findstr /C:\"Compiled successfully\" /C:\"error\")",
+      "powershell"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
