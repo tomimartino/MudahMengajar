@@ -18,8 +18,9 @@ import {
 } from "date-fns";
 import { id } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Users } from "lucide-react";
 import { CompleteSessionDialog } from "@/components/dashboard/complete-session-dialog";
+import { EditSessionDialog } from "@/components/dashboard/edit-session-dialog";
 import { ScheduleDetailDialog, type ScheduleItem } from "@/components/schedule/schedule-detail-dialog";
 import { ScheduleStatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
@@ -28,9 +29,18 @@ import { Button } from "@/components/ui/button";
 import { LEARNING_MODES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
+export interface DashboardScheduleSession {
+  id: string;
+  material: string | null;
+  sub_material: string | null;
+  homework: string | null;
+  progress_notes: string | null;
+}
+
 export interface DashboardScheduleItem extends ScheduleItem {
   grade_level: string | null;
   school_level: string | null;
+  session: DashboardScheduleSession | null;
 }
 
 export type CalendarView = "day" | "week" | "month";
@@ -55,6 +65,7 @@ export function DashboardSchedule({
     format(toZonedTime(new Date(), timezone), "yyyy-MM-dd")
   );
   const [completing, setCompleting] = useState<DashboardScheduleItem | null>(null);
+  const [editing, setEditing] = useState<DashboardScheduleItem | null>(null);
   const [detail, setDetail] = useState<DashboardScheduleItem | null>(null);
 
   const current = parse(date, "yyyy-MM-dd", new Date());
@@ -272,9 +283,15 @@ export function DashboardSchedule({
                 </button>
                 <div className="flex items-center gap-2">
                   <ScheduleStatusBadge status={s.status} startAt={s.start_at} endAt={s.end_at} />
-                  <Button size="sm" onClick={() => setCompleting(s)}>
-                    <CheckCircle2 className="size-4" /> Selesaikan
-                  </Button>
+                  {s.status === "scheduled" ? (
+                    <Button size="sm" onClick={() => setCompleting(s)}>
+                      <CheckCircle2 className="size-4" /> Selesaikan
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => setEditing(s)}>
+                      <Pencil className="size-4" /> Isi Materi
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -295,12 +312,32 @@ export function DashboardSchedule({
         />
       )}
 
+      {editing && (
+        <EditSessionDialog
+          open={!!editing}
+          onOpenChange={(o) => !o && setEditing(null)}
+          schedule={editing}
+          onSuccess={() => {
+            setEditing(null);
+            router.refresh();
+          }}
+        />
+      )}
+
       {detail && (
         <ScheduleDetailDialog
           schedule={detail}
           timezone={timezone}
           open={!!detail}
           onOpenChange={(o) => !o && setDetail(null)}
+          onEdit={
+            detail.status === "completed"
+              ? () => {
+                  setDetail(null);
+                  setEditing(detail);
+                }
+              : undefined
+          }
         />
       )}
     </div>

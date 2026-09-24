@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Ban, CalendarRange, ExternalLink, MapPin, Repeat2 } from "lucide-react";
+import { Ban, CalendarRange, ExternalLink, MapPin, Pencil, Repeat2 } from "lucide-react";
 import { cancelScheduleAction } from "@/lib/actions/schedule";
 import { ScheduleStatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
@@ -37,11 +37,13 @@ export function ScheduleDetailDialog({
   timezone,
   open,
   onOpenChange,
+  onEdit,
 }: {
   schedule: ScheduleItem;
   timezone: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: () => void;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -101,6 +103,11 @@ export function ScheduleDetailDialog({
           {schedule.notes && <p className="text-muted-foreground">{schedule.notes}</p>}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
+          {schedule.status === "completed" && onEdit && (
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Pencil className="size-4" /> Isi Materi
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm">
             <Link href={`/students/${schedule.student_id}`}>
               <ExternalLink className="size-4" /> Profil Siswa

@@ -32,6 +32,7 @@ export const studentSchema = z
     schedule_days: z.array(z.number().int().min(1).max(7)).optional().default([]),
     schedule_start_time: optionalText,
     schedule_location: optionalText,
+    schedule_start_date: optionalText,
   })
   .superRefine((v, ctx) => {
     if (v.billing_type === "per_session" && parseAmount(v.per_session_rate) <= 0) {
@@ -68,6 +69,9 @@ export const studentSchema = z
       if (!timeString.safeParse(v.schedule_start_time).success) {
         ctx.addIssue({ code: "custom", path: ["schedule_start_time"], message: "Jam mulai wajib diisi." });
       }
+    }
+    if (v.schedule_start_date !== "" && !dateString.safeParse(v.schedule_start_date).success) {
+      ctx.addIssue({ code: "custom", path: ["schedule_start_date"], message: "Tanggal mulai jadwal tidak valid." });
     }
   });
 

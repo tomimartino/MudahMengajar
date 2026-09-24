@@ -113,8 +113,9 @@ function nextMonthlyDueDate(dueDay: number, tz: string): Date {
 /**
  * Jadwal (opsional): guru memilih hari + jam, banyaknya mengikuti sistem pembayaran.
  * package → sebanyak jumlah pertemuan paket; monthly → pada hari terpilih
- * sampai tanggal jatuh tempo berikutnya. Mulai hari ini bila jam mulai belum
- * lewat, tanpa recurrence_rule.
+ * sampai tanggal jatuh tempo berikutnya. Dimulai dari schedule_start_date bila
+ * diisi (boleh lampau — pertemuan lewat berstatus completed); jika kosong,
+ * mulai hari ini bila jam mulai belum lewat. Tanpa recurrence_rule.
  */
 async function createInitialSchedule(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -142,10 +143,17 @@ async function createInitialSchedule(
 
   const dates: string[] = [];
   const now = toZonedTime(new Date(), tz);
-  // Sertakan hari ini hanya jika termasuk hari terpilih dan jam mulai belum lewat.
-  const todayIncluded =
-    days.includes(getISODay(now)) && format(now, "HH:mm") < d.schedule_start_time;
-  let cursor = todayIncluded ? now : addDays(now, 1);
+
+  let cursor: Date;
+  if (d.schedule_start_date) {
+    // Mulai dari tanggal yang dipilih — boleh lampau; pertemuan lewat ditandai completed.
+    cursor = parse(d.schedule_start_date, "yyyy-MM-dd", new Date());
+  } else {
+    // Perilaku lama: sertakan hari ini hanya jika hari terpilih dan jam mulai belum lewat.
+    const todayIncluded =
+      days.includes(getISODay(now)) && format(now, "HH:mm") < d.schedule_start_time;
+    cursor = todayIncluded ? now : addDays(now, 1);
+  }
 
   if (d.billing_type === "package") {
     const total = Number(d.package_sessions);
@@ -174,6 +182,7 @@ async function createInitialSchedule(
   const rows = dates.map((date) => {
     const startLocal = parse(`${date} ${d.schedule_start_time}`, "yyyy-MM-dd HH:mm", new Date());
     const endLocal = addMinutes(startLocal, durationMinutes);
+    const ended = fromZonedTime(endLocal, tz) <= new Date();
     return {
       user_id: userId,
       student_id: studentId,
@@ -182,6 +191,7 @@ async function createInitialSchedule(
       end_at: fromZonedTime(endLocal, tz).toISOString(),
       learning_mode: d.learning_mode,
       location: clean(d.schedule_location),
+      status: ended ? "completed" : "scheduled",
     };
   });
 

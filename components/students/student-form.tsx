@@ -147,6 +147,7 @@ export function StudentForm({
       schedule_days: [],
       schedule_start_time: "",
       schedule_location: "",
+      schedule_start_date: toDateInput(new Date()),
     },
   });
 
@@ -572,6 +573,8 @@ export function StudentForm({
               <p className="mb-4 text-xs text-muted-foreground">
                 Pilih hari dan jam mengajar. Paket → jadwal dibuat sebanyak jumlah pertemuan
                 paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal jatuh tempo.
+                Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat otomatis
+                berstatus Selesai.
               </p>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -606,6 +609,19 @@ export function StudentForm({
                 <div className="grid gap-4 sm:grid-cols-3">
                   <FormField
                     control={form.control}
+                    name="schedule_start_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanggal mulai jadwal</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="schedule_start_time"
                     render={({ field }) => (
                       <FormItem>
@@ -621,7 +637,7 @@ export function StudentForm({
                     control={form.control}
                     name="schedule_location"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem>
                         <FormLabel>Lokasi / link meeting</FormLabel>
                         <FormControl>
                           <Input placeholder="Rumah siswa / https://zoom.us/j/..." {...field} />

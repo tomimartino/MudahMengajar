@@ -94,7 +94,7 @@ export default async function DashboardPage({
     .gte("session_date", monthStart)
     .lt("session_date", nextMonthStart);
 
-  // Jadwal untuk kalender (rentang sesuai view; hanya yang masih terjadwal)
+  // Jadwal untuk kalender (rentang sesuai view; terjadwal + selesai, dibatalkan disembunyikan)
   const d = parse(dateStr, "yyyy-MM-dd", new Date());
   let rangeStart: Date;
   let rangeEnd: Date;
@@ -115,11 +115,33 @@ export default async function DashboardPage({
       "id, start_at, end_at, status, learning_mode, location, notes, recurrence_rule, student_id, students(full_name, grade_level, school_level), subjects(name)"
     )
     .eq("user_id", user!.id)
-    .eq("status", "scheduled")
+    .in("status", ["scheduled", "completed"])
     .gte("start_at", fromZonedTime(rangeStart, tz).toISOString())
     .lte("start_at", fromZonedTime(rangeEnd, tz).toISOString())
     .order("start_at")
     .limit(1000);
+
+  // Materi/PR/catatan dari pertemuan yang sudah tercatat (untuk opsi Isi Materi)
+  const scheduleIds = (schedules ?? []).map((s) => s.id);
+  const sessionsBySchedule = new Map<
+    string,
+    {
+      id: string;
+      material: string | null;
+      sub_material: string | null;
+      homework: string | null;
+      progress_notes: string | null;
+    }
+  >();
+  if (scheduleIds.length > 0) {
+    const { data: sessionRows } = await supabase
+      .from("sessions")
+      .select("id, schedule_id, material, sub_material, homework, progress_notes")
+      .in("schedule_id", scheduleIds);
+    for (const r of sessionRows ?? []) {
+      if (r.schedule_id) sessionsBySchedule.set(r.schedule_id, r);
+    }
+  }
 
   const items: DashboardScheduleItem[] = (schedules ?? []).map((s) => {
     const student = s.students as unknown as {
@@ -141,6 +163,7 @@ export default async function DashboardPage({
       subject_name: (s.subjects as unknown as { name: string }).name,
       grade_level: student.grade_level,
       school_level: student.school_level,
+      session: sessionsBySchedule.get(s.id) ?? null,
     };
   });
 

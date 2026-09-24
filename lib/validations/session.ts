@@ -40,6 +40,15 @@ export const updateAttendanceSchema = z.object({
   note: z.string().optional().default(""),
 });
 
+// Isi/edit materi untuk jadwal yang sudah selesai (upsert sesi by schedule)
+export const saveSessionForScheduleSchema = z.object({
+  material: z.string().optional().default(""),
+  sub_material: z.string().optional().default(""),
+  homework: z.string().optional().default(""),
+  progress_notes: z.string().optional().default(""),
+});
+
 export type CompleteSessionInput = z.infer<typeof completeSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 export type UpdateAttendanceInput = z.infer<typeof updateAttendanceSchema>;
+export type SaveSessionForScheduleInput = z.infer<typeof saveSessionForScheduleSchema>;
