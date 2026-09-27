@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   },
   description:
     "Dashboard administrasi untuk guru bimbel dan les privat: siswa, jadwal, presensi, pembelajaran, paket, pembayaran, dan laporan dalam satu tempat.",
+  appleWebApp: {
+    capable: true,
+    title: "MudahMengajar",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

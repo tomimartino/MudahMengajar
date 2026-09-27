@@ -37,6 +37,24 @@ export function isIOSDevice(): boolean {
   );
 }
 
+/**
+ * Deteksi mode standalone PWA (dibuka dari ikon layar utama).
+ * Di iOS, matchMedia saja tidak selalu akurat — WebKit lama melaporkan
+ * display-mode salah, jadi pakai navigator.standalone sebagai fallback.
+ */
+export function isStandalonePWA(): boolean {
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(display-mode: standalone)").matches
+  ) {
+    return true;
+  }
+  return (
+    typeof navigator !== "undefined" &&
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 /** SubKey ArrayBuffer → string base64 (format penyimpanan di tabel push_subscriptions). */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);

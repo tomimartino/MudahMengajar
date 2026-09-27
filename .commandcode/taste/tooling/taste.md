@@ -6,3 +6,4 @@
 - Production deployments should have Vercel Deployment Protection (Vercel Authentication) disabled so public flows (shareable profile links, email verification callbacks) aren't intercepted by Vercel's login screen. Confidence: 0.85
 - Works on Windows (project paths like C:\MudahMengajar); shell commands should use PowerShell syntax rather than bash. Confidence: 0.8
 - Prefers a clean, professional production domain (custom domain or clean Vercel subdomain) over the default `<project>-<user>-projects.vercel.app` URL for production and auth email redirects. Confidence: 0.6
+- Tests/uses the web app on iPhone (iOS Safari), so iOS-specific PWA behavior matters: web push only works from an installed PWA in standalone mode, and iOS needs complete install signals (apple-touch-icon, apple-mobile-web-app-capable meta, robust standalone detection with navigator.standalone fallback). Confidence: 0.7

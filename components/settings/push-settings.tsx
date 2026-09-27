@@ -8,6 +8,7 @@ import {
   arrayBufferToBase64,
   getVapidPublicKey,
   isIOSDevice,
+  isStandalonePWA,
   registerServiceWorker,
 } from "@/lib/utils/push";
 import { Button } from "@/components/ui/button";
@@ -57,10 +58,7 @@ export function PushSettings() {
         toast.error("Browser ini tidak mendukung notifikasi push.");
         return;
       }
-      if (
-        isIOSDevice() &&
-        !window.matchMedia("(display-mode: standalone)").matches
-      ) {
+      if (isIOSDevice() && !isStandalonePWA()) {
         toast.warning(
           "Di iPhone, pasang aplikasi ke layar utama dulu (Bagikan → Tambah ke Layar Utama), lalu buka dari ikonnya."
         );
