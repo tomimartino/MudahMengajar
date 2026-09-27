@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { actionError, fail, ok } from "@/lib/actions/helpers";
 import { studentSchema } from "@/lib/validations/student";
 import { parseAmount } from "@/lib/utils/currency";
+import { DELETE_STUDENT_CONFIRMATION } from "@/lib/constants";
 import type { ActionResult } from "@/lib/actions/helpers";
 
 function clean(v: string): string | null {
@@ -111,11 +112,11 @@ function nextMonthlyDueDate(dueDay: number, tz: string): Date {
 }
 
 /**
- * Jadwal (opsional): guru memilih hari + jam, banyaknya mengikuti sistem pembayaran.
- * package → sebanyak jumlah pertemuan paket; monthly → pada hari terpilih
- * sampai tanggal jatuh tempo berikutnya. Dimulai dari schedule_start_date bila
- * diisi (boleh lampau — pertemuan lewat berstatus completed); jika kosong,
- * mulai hari ini bila jam mulai belum lewat. Tanpa recurrence_rule.
+ * Jadwal (opsional): guru memilih hari + jam (tiap hari bisa berbeda), banyaknya
+ * mengikuti sistem pembayaran. package → sebanyak jumlah pertemuan paket; monthly →
+ * pada hari terpilih sampai tanggal jatuh tempo berikutnya. Dimulai dari
+ * schedule_start_date bila diisi (boleh lampau — pertemuan lewat berstatus completed);
+ * jika kosong, mulai hari ini bila jam mulai belum lewat. Tanpa recurrence_rule.
  */
 async function createInitialSchedule(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -123,8 +124,8 @@ async function createInitialSchedule(
   studentId: string,
   d: ReturnType<typeof studentSchema.parse>
 ): Promise<void> {
-  const days = d.schedule_days ?? [];
-  if (days.length === 0 || !d.schedule_start_time) return;
+  const timeByDay = new Map(d.schedule_times.map((t) => [t.day, t.start_time]));
+  if (timeByDay.size === 0) return;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -141,7 +142,7 @@ async function createInitialSchedule(
     .single();
   const durationMinutes = settings?.default_duration_minutes ?? 90;
 
-  const dates: string[] = [];
+  const dates: Array<{ date: string; time: string }> = [];
   const now = toZonedTime(new Date(), tz);
 
   let cursor: Date;
@@ -150,16 +151,18 @@ async function createInitialSchedule(
     cursor = parse(d.schedule_start_date, "yyyy-MM-dd", new Date());
   } else {
     // Perilaku lama: sertakan hari ini hanya jika hari terpilih dan jam mulai belum lewat.
-    const todayIncluded =
-      days.includes(getISODay(now)) && format(now, "HH:mm") < d.schedule_start_time;
+    const isoDay = getISODay(now);
+    const todayIncluded = timeByDay.has(isoDay) && format(now, "HH:mm") < timeByDay.get(isoDay)!;
     cursor = todayIncluded ? now : addDays(now, 1);
   }
 
   if (d.billing_type === "package") {
     const total = Number(d.package_sessions);
     while (dates.length < total) {
-      if (days.includes(getISODay(cursor))) {
-        dates.push(format(cursor, "yyyy-MM-dd"));
+      const isoDay = getISODay(cursor);
+      const time = timeByDay.get(isoDay);
+      if (time) {
+        dates.push({ date: format(cursor, "yyyy-MM-dd"), time });
       }
       cursor = addDays(cursor, 1);
     }
@@ -169,8 +172,10 @@ async function createInitialSchedule(
     // Maksimal 2 bulan iterasi sebagai pengaman
     let guard = 0;
     while (format(cursor, "yyyy-MM-dd") <= dueKey && guard < 90) {
-      if (days.includes(getISODay(cursor))) {
-        dates.push(format(cursor, "yyyy-MM-dd"));
+      const isoDay = getISODay(cursor);
+      const time = timeByDay.get(isoDay);
+      if (time) {
+        dates.push({ date: format(cursor, "yyyy-MM-dd"), time });
       }
       cursor = addDays(cursor, 1);
       guard += 1;
@@ -179,8 +184,8 @@ async function createInitialSchedule(
     return;
   }
 
-  const rows = dates.map((date) => {
-    const startLocal = parse(`${date} ${d.schedule_start_time}`, "yyyy-MM-dd HH:mm", new Date());
+  const rows = dates.map(({ date, time }) => {
+    const startLocal = parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", new Date());
     const endLocal = addMinutes(startLocal, durationMinutes);
     const ended = fromZonedTime(endLocal, tz) <= new Date();
     return {
@@ -304,19 +309,27 @@ export async function updateStudentAction(
   }
 }
 
-export async function deleteStudentAction(studentId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  // Siswa dengan riwayat pembayaran tidak bisa dihapus — hanya dinonaktifkan.
-  const { count: paymentCount } = await supabase
-    .from("payments")
-    .select("id", { count: "exact", head: true })
-    .eq("student_id", studentId);
-  if ((paymentCount ?? 0) > 0) {
-    return fail(
-      "Siswa memiliki riwayat pembayaran sehingga tidak bisa dihapus. Silakan nonaktifkan saja."
-    );
+export async function deleteStudentAction(
+  studentId: string,
+  confirmation: string
+): Promise<ActionResult> {
+  if (confirmation !== DELETE_STUDENT_CONFIRMATION) {
+    return fail('Ketik "HAPUS MURID" untuk mengonfirmasi.');
   }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail("Tidak terautentikasi.");
+
+  // Pastikan siswa milik pengguna ini (baris milik user lain tidak terlihat karena RLS).
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .maybeSingle();
+  if (!student) return fail("Siswa tidak ditemukan.");
 
   // Hapus total: presensi → pertemuan → jadwal → pembayaran → siswa
   // (student_subjects, paket, dan tagihan terhapus otomatis via ON DELETE CASCADE)

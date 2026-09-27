@@ -222,9 +222,6 @@ export default async function DashboardPage({
           <CardTitle className="flex items-center gap-2 text-base">
             <CalendarDays className="size-4 text-primary" /> Jadwal
           </CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/schedule/new">Buat Jadwal</Link>
-          </Button>
         </CardHeader>
         <CardContent>
           <DashboardSchedule

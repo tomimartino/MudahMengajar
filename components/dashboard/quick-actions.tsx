@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus, ReceiptText, UserPlus } from "lucide-react";
+import { ReceiptText, UserPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const ACTIONS = [
@@ -8,12 +8,6 @@ const ACTIONS = [
     href: "/students/new",
     icon: UserPlus,
     description: "Daftarkan siswa baru",
-  },
-  {
-    label: "Buat Jadwal",
-    href: "/schedule/new",
-    icon: CalendarPlus,
-    description: "Atur jadwal les",
   },
   {
     label: "Catat Pembayaran",
@@ -27,7 +21,7 @@ export function QuickActions() {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ACTIONS.map((a) => (
             <Link
               key={a.label}

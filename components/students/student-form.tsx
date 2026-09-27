@@ -144,8 +144,7 @@ export function StudentForm({
       package_start_date: toDateInput(new Date()),
       subject_ids: initial?.subject_ids ?? [],
       status: (initial?.status as "active" | "inactive") ?? "active",
-      schedule_days: [],
-      schedule_start_time: "",
+      schedule_times: [],
       schedule_location: "",
       schedule_start_date: toDateInput(new Date()),
     },
@@ -154,13 +153,22 @@ export function StudentForm({
   const billingType = form.watch("billing_type");
   const schoolLevel = form.watch("school_level") as SchoolLevel;
   const subjectIds = form.watch("subject_ids");
-  const scheduleDays = form.watch("schedule_days") ?? [];
+  const scheduleTimes = form.watch("schedule_times") ?? [];
 
   function toggleScheduleDay(day: number) {
-    const next = scheduleDays.includes(day)
-      ? scheduleDays.filter((d) => d !== day)
-      : [...scheduleDays, day];
-    form.setValue("schedule_days", next, { shouldValidate: true });
+    const exists = scheduleTimes.some((t) => t.day === day);
+    const next = exists
+      ? scheduleTimes.filter((t) => t.day !== day)
+      : [...scheduleTimes, { day, start_time: "" }].sort((a, b) => a.day - b.day);
+    form.setValue("schedule_times", next, { shouldValidate: true });
+  }
+
+  function updateScheduleTime(day: number, startTime: string) {
+    form.setValue(
+      "schedule_times",
+      scheduleTimes.map((t) => (t.day === day ? { ...t, start_time: startTime } : t)),
+      { shouldValidate: true }
+    );
   }
 
   function toggleSubject(id: string) {
@@ -571,10 +579,11 @@ export function StudentForm({
             <section className="rounded-xl border bg-card p-5">
               <h2 className="mb-1 text-sm font-semibold text-muted-foreground">JADWAL</h2>
               <p className="mb-4 text-xs text-muted-foreground">
-                Pilih hari dan jam mengajar. Paket → jadwal dibuat sebanyak jumlah pertemuan
-                paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal jatuh tempo.
-                Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat otomatis
-                berstatus Selesai.
+                Pilih hari dan jam mengajar — setiap hari bisa memiliki jam mulai berbeda
+                (mis. Rabu 14:00, Kamis 12:00). Paket → jadwal dibuat sebanyak jumlah
+                pertemuan paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal
+                jatuh tempo. Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat
+                otomatis berstatus Selesai.
               </p>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -582,6 +591,7 @@ export function StudentForm({
                   <div className="flex flex-wrap gap-2">
                     {DAY_NAMES.map((name, i) => {
                       const day = i + 1;
+                      const selected = scheduleTimes.some((t) => t.day === day);
                       return (
                         <button
                           key={name}
@@ -589,7 +599,7 @@ export function StudentForm({
                           onClick={() => toggleScheduleDay(day)}
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                            scheduleDays.includes(day)
+                            selected
                               ? "border-primary bg-primary text-primary-foreground"
                               : "border-border hover:border-primary/50 hover:text-primary"
                           )}
@@ -599,14 +609,38 @@ export function StudentForm({
                       );
                     })}
                   </div>
-                  {form.formState.errors.schedule_days && (
-                    <p className="text-sm font-medium text-destructive">
-                      {form.formState.errors.schedule_days.message}
-                    </p>
-                  )}
+                  {scheduleTimes.map((t) => {
+                    const entryIndex = scheduleTimes.findIndex((x) => x.day === t.day);
+                    const entryError = form.formState.errors.schedule_times?.[entryIndex]
+                      ?.start_time;
+                    return (
+                      <div key={t.day} className="flex items-center gap-3">
+                        <span className="w-20 text-sm font-medium">{DAY_NAMES[t.day - 1]}</span>
+                        <Input
+                          type="time"
+                          value={t.start_time}
+                          onChange={(e) => updateScheduleTime(t.day, e.target.value)}
+                          className="w-36"
+                          aria-label={`Jam mulai hari ${DAY_NAMES[t.day - 1]}`}
+                        />
+                        {entryError && (
+                          <p className="text-sm font-medium text-destructive">
+                            {entryError.message}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {form.formState.errors.schedule_times &&
+                    !Array.isArray(form.formState.errors.schedule_times) &&
+                    form.formState.errors.schedule_times.message && (
+                      <p className="text-sm font-medium text-destructive">
+                        {form.formState.errors.schedule_times.message}
+                      </p>
+                    )}
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="schedule_start_date"
@@ -615,19 +649,6 @@ export function StudentForm({
                         <FormLabel>Tanggal mulai jadwal</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="schedule_start_time"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jam mulai</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

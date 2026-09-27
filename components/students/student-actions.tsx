@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Ban, CircleCheck, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteStudentAction, setStudentStatusAction } from "@/lib/actions/students";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { setStudentStatusAction } from "@/lib/actions/students";
+import { DeleteStudentDialog } from "@/components/students/delete-student-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -71,11 +71,9 @@ export function StudentActions({
             </>
           )}
         </DropdownMenuItem>
-        <ConfirmDialog
-          title="Hapus siswa?"
-          description={`"${studentName}" akan dihapus permanen beserta jadwal di kalender. Siswa yang memiliki riwayat pembayaran tidak bisa dihapus — nonaktifkan saja.`}
-          confirmLabel="Hapus"
-          onConfirm={() => deleteStudentAction(studentId)}
+        <DeleteStudentDialog
+          studentId={studentId}
+          studentName={studentName}
           trigger={
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"

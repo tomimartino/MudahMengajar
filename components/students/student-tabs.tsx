@@ -214,11 +214,7 @@ export async function ScheduleTab({ studentId, timezone }: { studentId: string; 
       <EmptyState
         icon={CalendarDays}
         title="Belum ada jadwal."
-        action={
-          <Button asChild>
-            <Link href="/schedule/new">Buat Jadwal</Link>
-          </Button>
-        }
+        description="Jadwal dibuat otomatis saat menambah murid."
       />
     );
   }

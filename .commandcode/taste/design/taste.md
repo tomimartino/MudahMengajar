@@ -9,6 +9,7 @@
 - Every page has an empty state (no bare empty tables); prefers skeleton loading over spinners; every mutation shows loading/success/error feedback via toast. Confidence: 0.85
 - Prefers streamlined, minimal forms: removes optional/redundant fields when their value can be auto-derived or handled later (e.g., dropped the initial-payment section; schedule form asks only for start time and derives end time from the configured duration). Confidence: 0.85
 - Prefers schedule entry by day-of-week + time + number of meetings (system auto-fills the calendar, e.g., Mon+Wed × 12 meetings = 12 slots) over picking explicit dates/date ranges. Confidence: 0.85
+- Prefers per-day schedule flexibility: each selected weekday can have its own distinct start time (e.g., Wednesday 14:00, Thursday 12:00) rather than a single shared time applied across all selected days. Confidence: 0.8
 - Prefers consolidating features and avoiding duplicated UI: merges related pages into tabs (e.g., students+payments, sessions+attendance), relocates secondary features (e.g., schedule calendar) into the dashboard, and removes redundant panels when the same info is available elsewhere. Confidence: 0.8
 - Separates the public-facing profile/portfolio (identity, bio, achievements, rate, teaching history) from account settings, styled after LinkedIn; public-facing fields like learning method live on the profile so parents/guardians can see them. Confidence: 0.85
 - Prefers Profil and Pengaturan as two separate items in the avatar/user dropdown menu rather than one combined "Profil & Pengaturan" entry. Confidence: 0.8
@@ -22,3 +23,4 @@
 - Prefers branded, polished HTML email templates (inline-styled, brand-color header, single clear CTA button, plus a plain-text fallback link) over plain default provider templates like Supabase's bare "Confirm your email" text. Confidence: 0.7
 - Prefers simple data/statistics presentation via summary cards + tables over charts/graphs; explicitly asks for monthly-income figures as cards (e.g., a grid of monthly income cards on /finance). Confidence: 0.7
 - Prefers UI labels that match the domain concept: student status in the student list/tab uses Aktif/Nonaktif (active/inactive), while Hadir (present) is reserved for attendance contexts such as the detail page. Confidence: 0.7
+s the detail page. Confidence: 0.7

@@ -28,9 +28,11 @@ export const studentSchema = z
     package_start_date: z.string().optional().default(""),
     subject_ids: z.array(z.string().min(1)).min(1, "Pilih minimal satu mata pelajaran."),
     status: z.enum(["active", "inactive"]),
-    // Jadwal (opsional — pilih hari + jam mulai; durasi mengikuti pengaturan)
-    schedule_days: z.array(z.number().int().min(1).max(7)).optional().default([]),
-    schedule_start_time: optionalText,
+    // Jadwal (opsional — pilih hari, tiap hari bisa punya jam mulai sendiri)
+    schedule_times: z
+      .array(z.object({ day: z.number().int().min(1).max(7), start_time: timeString }))
+      .optional()
+      .default([]),
     schedule_location: optionalText,
     schedule_start_date: optionalText,
   })
@@ -59,16 +61,14 @@ export const studentSchema = z
         ctx.addIssue({ code: "custom", path: ["package_start_date"], message: "Tanggal mulai wajib diisi." });
       }
     }
-    // Jadwal opsional: jika salah satu diisi, lengkapi semuanya
-    const scheduleFilled =
-      (v.schedule_days ?? []).length > 0 || v.schedule_start_time !== "";
-    if (scheduleFilled) {
-      if ((v.schedule_days ?? []).length === 0) {
-        ctx.addIssue({ code: "custom", path: ["schedule_days"], message: "Pilih minimal satu hari." });
+    // Jadwal opsional; tiap entri hari wajib punya jam mulai valid (diwajibkan schema di atas).
+    const seenDays = new Set<number>();
+    for (const t of v.schedule_times) {
+      if (seenDays.has(t.day)) {
+        ctx.addIssue({ code: "custom", path: ["schedule_times"], message: "Hari tidak boleh ganda." });
+        break;
       }
-      if (!timeString.safeParse(v.schedule_start_time).success) {
-        ctx.addIssue({ code: "custom", path: ["schedule_start_time"], message: "Jam mulai wajib diisi." });
-      }
+      seenDays.add(t.day);
     }
     if (v.schedule_start_date !== "" && !dateString.safeParse(v.schedule_start_date).success) {
       ctx.addIssue({ code: "custom", path: ["schedule_start_date"], message: "Tanggal mulai jadwal tidak valid." });

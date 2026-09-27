@@ -133,14 +133,10 @@ export const TIMEZONES = [
   { value: "Asia/Jayapura", label: "WIT — Asia/Jayapura" },
 ] as const;
 
-export const RECURRENCE_LABELS = {
-  none: "Tidak Berulang",
-  weekly: "Setiap Minggu",
-  biweekly: "Setiap 2 Minggu",
-  custom: "Custom",
-} as const;
-
 export const DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+/** Teks yang wajib diketik pengguna untuk mengonfirmasi penghapusan murid. */
+export const DELETE_STUDENT_CONFIRMATION = "HAPUS MURID";
 
 export const PAGE_SIZE = 20;
 
