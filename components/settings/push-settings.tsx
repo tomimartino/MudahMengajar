@@ -8,7 +8,6 @@ import {
   arrayBufferToBase64,
   getVapidPublicKey,
   isIOSDevice,
-  isStandalonePWA,
   registerServiceWorker,
 } from "@/lib/utils/push";
 import { Button } from "@/components/ui/button";
@@ -54,14 +53,17 @@ export function PushSettings() {
   async function enable() {
     setPending(true);
     try {
+      // Di iOS, PushManager hanya ada jika aplikasi dibuka sebagai web app
+      // terpasang dari layar utama — jadi ini pengganti cek display-mode
+      // yang tidak selalu akurat di WebKit.
       if (!supported) {
-        toast.error("Browser ini tidak mendukung notifikasi push.");
-        return;
-      }
-      if (isIOSDevice() && !isStandalonePWA()) {
-        toast.warning(
-          "Di iPhone, pasang aplikasi ke layar utama dulu (Bagikan → Tambah ke Layar Utama), lalu buka dari ikonnya."
-        );
+        if (isIOSDevice()) {
+          toast.warning(
+            "Di iPhone, pasang aplikasi ke layar utama dulu (Bagikan → Tambah ke Layar Utama), lalu buka aplikasi dari ikonnya."
+          );
+        } else {
+          toast.error("Browser ini tidak mendukung notifikasi push.");
+        }
         return;
       }
       const permission = await Notification.requestPermission();
@@ -72,10 +74,21 @@ export function PushSettings() {
       }
       const reg = await registerServiceWorker();
       if (!reg) throw new Error("Service worker tidak tersedia.");
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: getVapidPublicKey(),
-      });
+      let sub: PushSubscription;
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: getVapidPublicKey(),
+        });
+      } catch (e) {
+        if (isIOSDevice()) {
+          toast.warning(
+            "Di iPhone, buka aplikasi dari ikon di layar utama (bukan dari Safari) untuk mengaktifkan notifikasi."
+          );
+          return;
+        }
+        throw e;
+      }
 
       const supabase = createClient();
       const {
@@ -145,7 +158,13 @@ export function PushSettings() {
           {status === "subscribed" && <StatusBadge tone="green">Aktif di perangkat ini</StatusBadge>}
           {status === "granted" && <StatusBadge tone="yellow">Izin diberikan, belum berlangganan</StatusBadge>}
           {status === "denied" && <StatusBadge tone="red">Ditolak — ubah izin di pengaturan browser</StatusBadge>}
-          {status === "unsupported" && <StatusBadge tone="gray">Browser tidak mendukung push</StatusBadge>}
+          {status === "unsupported" && (
+            <StatusBadge tone="gray">
+              {isIOSDevice()
+                ? "Pasang ke layar utama dulu, lalu buka dari ikonnya"
+                : "Browser tidak mendukung push"}
+            </StatusBadge>
+          )}
           {status === "default" && <StatusBadge tone="gray">Belum diaktifkan</StatusBadge>}
         </div>
       </div>
@@ -154,7 +173,7 @@ export function PushSettings() {
           <BellOff className="size-4" /> Nonaktifkan
         </Button>
       ) : (
-        <Button size="sm" onClick={() => void enable()} disabled={pending || !supported}>
+        <Button size="sm" onClick={() => void enable()} disabled={pending}>
           <BellRing className="size-4" /> {pending ? "Memproses..." : "Aktifkan Notifikasi"}
         </Button>
       )}
