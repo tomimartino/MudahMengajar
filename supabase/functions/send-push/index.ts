@@ -68,8 +68,26 @@ function convertVapidKeysToJWK(publicKeyBase64url: string, privateKeyBase64url: 
 Deno.serve(async (req) => {
   // Guard: hanya scheduler (pg_cron) dengan service role key yang boleh.
   const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-  if (req.headers.get("Authorization") !== expected) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  const received = req.headers.get("Authorization") ?? "";
+  if (received.trim() !== expected) {
+    // DEBUG SEMENTARA — hapus blok debug ini setelah kunci cocok.
+    const envKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const sentToken = received.replace(/^Bearer\s+/i, "").trim();
+    return new Response(
+      JSON.stringify({
+        error: "Unauthorized",
+        debug: {
+          envKeySet: Boolean(envKey),
+          envKeyLength: envKey?.length ?? 0,
+          envKeyPrefix: envKey?.slice(0, 12) ?? null,
+          envKeySuffix: envKey?.slice(-6) ?? null,
+          sentTokenLength: sentToken.length,
+          sentTokenPrefix: sentToken.slice(0, 12),
+          sentTokenSuffix: sentToken.slice(-6),
+        },
+      }),
+      { status: 401 }
+    );
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

@@ -6,3 +6,4 @@
 - Shares screenshots of the actual UI when reporting a bug or confirming where to perform a step (e.g., a screenshot of an unwanted warning toast, or where to add env vars in Vercel) rather than describing the screen in text — expects the assistant to read the image. Confidence: 0.7
 - When confused by a technical explanation, asks for a more detailed, plain-language walkthrough starting from the basics; responds well to step-by-step instructions with concrete analogies. Confidence: 0.85
 - When hitting an error, wants to understand the root cause ("kenapa ini?") rather than just being handed the fix; explain the why first, then give the corrected command. Confidence: 0.55
+- Writes code comments in Bahasa Indonesia (technical identifiers, library/function names, and error strings stay in English). Confidence: 0.6
