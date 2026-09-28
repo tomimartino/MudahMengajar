@@ -5,5 +5,8 @@
 - References existing sites only for flow and feature inspiration; never copies design, source code, branding, text, or assets — builds original UI/UX and identity. Confidence: 0.9
 - Shares screenshots of the actual UI when reporting a bug or confirming where to perform a step (e.g., a screenshot of an unwanted warning toast, or where to add env vars in Vercel) rather than describing the screen in text — expects the assistant to read the image. Confidence: 0.7
 - When confused by a technical explanation, asks for a more detailed, plain-language walkthrough starting from the basics; responds well to step-by-step instructions with concrete analogies. Confidence: 0.85
+- When asking how a feature works ("alur kerja X gimana?"), wants an end-to-end data-flow walkthrough (data source → builder → trigger → delivery → user action) with the specific files/functions involved, rather than a terse one-liner; a numbered step-by-step flow lands well. Confidence: 0.5
 - When hitting an error, wants to understand the root cause ("kenapa ini?") rather than just being handed the fix; explain the why first, then give the corrected command. Confidence: 0.55
+- Before running a command, asks what it does and why ("... untuk apa?") — wants the purpose and effect explained before executing it, rather than blindly copy-pasting. Confidence: 0.5
 - Writes code comments in Bahasa Indonesia (technical identifiers, library/function names, and error strings stay in English). Confidence: 0.6
+- When reporting a backend/CLI bug, pastes the exact command run and the exact raw output/error (e.g., the full curl call and its JSON response) rather than summarizing the failure. Confidence: 0.6
