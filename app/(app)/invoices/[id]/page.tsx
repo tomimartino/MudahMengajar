@@ -8,6 +8,7 @@ import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { InvoiceStatusBadge } from "@/components/shared/badges";
 import { InvoiceActions } from "@/components/payments/invoice-actions";
+import { PrintOnLoad } from "@/components/payments/print-on-load";
 import {
   Table,
   TableBody,
@@ -39,10 +40,13 @@ const STATUS_FOOTER: Record<string, { tone: string; text: (sisa: string, dibayar
 
 export default async function InvoicePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ cetak?: string }>;
 }) {
   const { id } = await params;
+  const { cetak } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -225,6 +229,8 @@ export default async function InvoicePage({
           </div>
         </div>
       </div>
+
+      <PrintOnLoad active={cetak === "1"} />
     </div>
   );
 }
