@@ -23,4 +23,4 @@
 - Prefers branded, polished HTML email templates (inline-styled, brand-color header, single clear CTA button, plus a plain-text fallback link) over plain default provider templates like Supabase's bare "Confirm your email" text. Confidence: 0.7
 - Prefers simple data/statistics presentation via summary cards + tables over charts/graphs; explicitly asks for monthly-income figures as cards (e.g., a grid of monthly income cards on /finance). Confidence: 0.7
 - Prefers UI labels that match the domain concept: student status in the student list/tab uses Aktif/Nonaktif (active/inactive), while Hadir (present) is reserved for attendance contexts such as the detail page. Confidence: 0.7
-s the detail page. Confidence: 0.7
+- Wants the app to show a proper branded icon everywhere it can be saved or installed — browser tab/favicon and PWA/shortcut icons on laptop and phone home screens — rather than a generic or random placeholder icon. Confidence: 0.7
