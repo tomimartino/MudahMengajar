@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useForm, type Resolver } from "react-hook-form";
@@ -68,10 +68,6 @@ export function CompleteSessionDialog({
     (new Date(schedule.end_at).getTime() - new Date(schedule.start_at).getTime()) / 60000
   );
   const localStart = toZonedTime(new Date(schedule.start_at), timezone);
-
-  useEffect(() => {
-    if (open) setMode("complete");
-  }, [open]);
 
   const form = useForm<CompleteSessionInput>({
     resolver: zodResolver(completeSessionSchema) as unknown as Resolver<CompleteSessionInput>,

@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Printer } from "lucide-react";
+import { Download, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   buildWaLink,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/whatsapp";
 
 export function InvoiceActions({
+  invoiceId,
   status,
   studentName,
   parentName,
@@ -21,6 +22,7 @@ export function InvoiceActions({
   tz,
   template,
 }: {
+  invoiceId: string;
   status: string;
   studentName: string;
   parentName: string | null;
@@ -76,44 +78,11 @@ export function InvoiceActions({
       ) : (
         <p className="text-xs text-muted-foreground">Wali belum memiliki nomor WhatsApp.</p>
       )}
-      <Button variant="outline" size="sm" onClick={handlePrint}>
-        <Printer className="size-4" /> Cetak
+      <Button asChild variant="outline" size="sm">
+        <a href={`/invoices/${invoiceId}/pdf`} download>
+          <Download className="size-4" /> Unduh PDF
+        </a>
       </Button>
     </div>
   );
-}
-
-function isIosDevice() {
-  const ua = navigator.userAgent;
-  return (
-    /iphone|ipad|ipod/i.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-}
-
-function isStandaloneMode() {
-  const nav = navigator as Navigator & { standalone?: boolean };
-  return (
-    nav.standalone === true ||
-    (typeof window.matchMedia === "function" &&
-      window.matchMedia("(display-mode: standalone)").matches)
-  );
-}
-
-function handlePrint() {
-  // window.print() tidak berfungsi di iOS saat app dibuka sebagai PWA standalone
-  // (Add to Home Screen). Buka invoice di tab Safari baru dan cetak dari sana.
-  if (isIosDevice() && isStandaloneMode()) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("cetak", "1");
-    const link = document.createElement("a");
-    link.href = url.toString();
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    return;
-  }
-  window.print();
 }

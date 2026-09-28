@@ -24,3 +24,4 @@
 - Prefers simple data/statistics presentation via summary cards + tables over charts/graphs; explicitly asks for monthly-income figures as cards (e.g., a grid of monthly income cards on /finance). Confidence: 0.7
 - Prefers UI labels that match the domain concept: student status in the student list/tab uses Aktif/Nonaktif (active/inactive), while Hadir (present) is reserved for attendance contexts such as the detail page. Confidence: 0.7
 - Wants the app to show a proper branded icon everywhere it can be saved or installed — browser tab/favicon and PWA/shortcut icons on laptop and phone home screens — rather than a generic or random placeholder icon. Confidence: 0.7
+- For exported/downloaded documents (e.g., an invoice PDF), prefers the output to contain only the relevant content itself (just the invoice card) with no app header/sidebar/chrome. Confidence: 0.85
