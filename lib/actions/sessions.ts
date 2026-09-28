@@ -102,6 +102,7 @@ export async function updateAttendanceAction(
 /**
  * Isi/edit materi untuk jadwal yang sudah selesai (completed).
  * Upsert sesi berdasarkan schedule_id: update bila sudah ada, insert bila belum.
+ * Kehadiran di-upsert di tabel attendance (unique session_id + student_id).
  */
 export async function saveSessionForScheduleAction(
   scheduleId: string,
@@ -135,7 +136,9 @@ export async function saveSessionForScheduleAction(
   const payload = {
     material: d.material.trim() || null,
     sub_material: d.sub_material.trim() || null,
+    learning_notes: d.learning_notes.trim() || null,
     homework: d.homework.trim() || null,
+    score: d.score === null ? null : String(d.score),
     progress_notes: d.progress_notes.trim() || null,
   };
 
@@ -145,7 +148,9 @@ export async function saveSessionForScheduleAction(
     .eq("schedule_id", scheduleId)
     .maybeSingle();
 
+  let sessionId: string;
   if (existing) {
+    sessionId = existing.id;
     const { error } = await supabase
       .from("sessions")
       .update(payload)
@@ -158,17 +163,45 @@ export async function saveSessionForScheduleAction(
         (new Date(schedule.end_at).getTime() - new Date(schedule.start_at).getTime()) / 60000
       )
     );
-    const { error } = await supabase.from("sessions").insert({
+    const { data: inserted, error } = await supabase
+      .from("sessions")
+      .insert({
+        user_id: user.id,
+        student_id: schedule.student_id,
+        schedule_id: scheduleId,
+        subject_id: schedule.subject_id,
+        session_date: format(toZonedTime(schedule.start_at, tz), "yyyy-MM-dd"),
+        started_at: schedule.start_at,
+        ended_at: schedule.end_at,
+        duration_minutes: durationMinutes,
+        ...payload,
+        status: "completed",
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) return fail(actionError(error ?? "Gagal membuat sesi."));
+    sessionId = inserted.id;
+  }
+
+  const { data: att } = await supabase
+    .from("attendance")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("student_id", schedule.student_id)
+    .maybeSingle();
+
+  if (att) {
+    const { error } = await supabase
+      .from("attendance")
+      .update({ status: d.attendance })
+      .eq("id", att.id);
+    if (error) return fail(actionError(error));
+  } else {
+    const { error } = await supabase.from("attendance").insert({
       user_id: user.id,
+      session_id: sessionId,
       student_id: schedule.student_id,
-      schedule_id: scheduleId,
-      subject_id: schedule.subject_id,
-      session_date: format(toZonedTime(schedule.start_at, tz), "yyyy-MM-dd"),
-      started_at: schedule.start_at,
-      ended_at: schedule.end_at,
-      duration_minutes: durationMinutes,
-      ...payload,
-      status: "completed",
+      status: d.attendance,
     });
     if (error) return fail(actionError(error));
   }

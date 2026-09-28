@@ -129,17 +129,36 @@ export default async function DashboardPage({
       id: string;
       material: string | null;
       sub_material: string | null;
+      learning_notes: string | null;
       homework: string | null;
+      score: string | number | null;
       progress_notes: string | null;
+      attendance_status: string | null;
     }
   >();
   if (scheduleIds.length > 0) {
     const { data: sessionRows } = await supabase
       .from("sessions")
-      .select("id, schedule_id, material, sub_material, homework, progress_notes")
+      .select("id, schedule_id, material, sub_material, learning_notes, homework, score, progress_notes")
       .in("schedule_id", scheduleIds);
+    const sessionIds = (sessionRows ?? []).map((r) => r.id);
+    const statusBySession = new Map<string, string>();
+    if (sessionIds.length > 0) {
+      const { data: attendanceRows } = await supabase
+        .from("attendance")
+        .select("session_id, status")
+        .in("session_id", sessionIds);
+      for (const a of attendanceRows ?? []) {
+        if (a.session_id) statusBySession.set(a.session_id, a.status);
+      }
+    }
     for (const r of sessionRows ?? []) {
-      if (r.schedule_id) sessionsBySchedule.set(r.schedule_id, r);
+      if (r.schedule_id) {
+        sessionsBySchedule.set(r.schedule_id, {
+          ...r,
+          attendance_status: statusBySession.get(r.id) ?? null,
+        });
+      }
     }
   }
 

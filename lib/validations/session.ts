@@ -42,9 +42,17 @@ export const updateAttendanceSchema = z.object({
 
 // Isi/edit materi untuk jadwal yang sudah selesai (upsert sesi by schedule)
 export const saveSessionForScheduleSchema = z.object({
+  attendance: z.enum(Object.keys(ATTENDANCE_STATUS) as [string, ...string[]], {
+    message: "Pilih status kehadiran.",
+  }),
   material: z.string().optional().default(""),
   sub_material: z.string().optional().default(""),
+  learning_notes: z.string().optional().default(""),
   homework: z.string().optional().default(""),
+  score: z.preprocess(
+    (v) => (v === "" || v == null ? null : Number(v)),
+    z.number().min(0, "Nilai minimal 0.").max(100, "Nilai maksimal 100.").nullable()
+  ),
   progress_notes: z.string().optional().default(""),
 });
 

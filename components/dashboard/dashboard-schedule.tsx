@@ -33,8 +33,11 @@ export interface DashboardScheduleSession {
   id: string;
   material: string | null;
   sub_material: string | null;
+  learning_notes: string | null;
   homework: string | null;
+  score: string | number | null;
   progress_notes: string | null;
+  attendance_status: string | null;
 }
 
 export interface DashboardScheduleItem extends ScheduleItem {
