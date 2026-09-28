@@ -48,7 +48,16 @@ export const saveSessionForScheduleSchema = z.object({
   progress_notes: z.string().optional().default(""),
 });
 
+export const switchScheduleSchema = z.object({
+  date: z
+    .string()
+    .min(1, "Tanggal wajib diisi.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid."),
+  time: z.string().min(1, "Jam wajib diisi.").regex(/^\d{2}:\d{2}$/, "Jam tidak valid."),
+});
+
 export type CompleteSessionInput = z.infer<typeof completeSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 export type UpdateAttendanceInput = z.infer<typeof updateAttendanceSchema>;
 export type SaveSessionForScheduleInput = z.infer<typeof saveSessionForScheduleSchema>;
+export type SwitchScheduleInput = z.infer<typeof switchScheduleSchema>;

@@ -305,6 +305,7 @@ export function DashboardSchedule({
           onOpenChange={(o) => !o && setCompleting(null)}
           schedule={completing}
           defaultDuration={defaultDuration}
+          timezone={timezone}
           onSuccess={() => {
             setCompleting(null);
             router.refresh();
