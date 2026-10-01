@@ -1,18 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { toast } from "sonner";
 import { PackagePlus, PackageX, SlidersHorizontal } from "lucide-react";
 import {
   adjustPackageAction,
   cancelPackageAction,
-  createPackageAction,
 } from "@/lib/actions/packages";
-import { packageSchema, type PackageInput } from "@/lib/validations/package";
-import { formatRupiah, parseAmount } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,146 +17,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { SubmitButton } from "@/components/shared/submit-button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { StudentForm, type StudentFormInitial } from "@/components/students/student-form";
 
-export function CreatePackageButton({ studentId }: { studentId: string }) {
+export function AddPackageButton({
+  subjects,
+  initial,
+  defaultLearningMode,
+  defaultDurationMinutes,
+}: {
+  subjects: { id: string; name: string }[];
+  initial: StudentFormInitial;
+  defaultLearningMode?: "offline" | "online" | "hybrid";
+  defaultDurationMinutes?: number;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-
-  const form = useForm<PackageInput>({
-    resolver: zodResolver(packageSchema) as unknown as Resolver<PackageInput>,
-    defaultValues: {
-      student_id: studentId,
-      total_sessions: undefined as unknown as number,
-      per_session_rate: "",
-      price: "",
-      start_date: "",
-    },
-  });
-
-  const totalSessions = form.watch("total_sessions");
-  const perSessionRate = form.watch("per_session_rate");
-
-  // Harga paket otomatis = tarif per pertemuan × jumlah pertemuan.
-  useEffect(() => {
-    const sessions = Number(totalSessions);
-    const rate = parseAmount(perSessionRate);
-    const total =
-      Number.isInteger(sessions) && sessions > 0 && rate > 0 ? sessions * rate : 0;
-    form.setValue(
-      "price",
-      total > 0 ? formatRupiah(total, { withSymbol: false }) : "",
-      { shouldValidate: true }
-    );
-  }, [totalSessions, perSessionRate, form]);
-
-  async function onSubmit(values: PackageInput) {
-    setPending(true);
-    const result = await createPackageAction(values);
-    setPending(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Paket berhasil dibuat dan tagihan diterbitkan.");
-    setOpen(false);
-    router.refresh();
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <PackagePlus className="size-4" /> Buat Paket
+          <PackagePlus className="size-4" /> Tambah Paket
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Buat Paket Pertemuan</DialogTitle>
+          <DialogTitle>Tambah Paket Pertemuan</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Tagihan otomatis dibuat saat paket disimpan.
+            Kolom terisi dari data siswa saat ini — ubah sesuai paket berikutnya.
+            Paket &amp; tagihan otomatis dibuat saat disimpan.
           </p>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="total_sessions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Jumlah pertemuan</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="12" inputMode="numeric" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="per_session_rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tarif per pertemuan</FormLabel>
-                  <FormControl>
-                    <Input placeholder="100.000" inputMode="numeric" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Harga paket (Rp)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="1.200.000"
-                      inputMode="numeric"
-                      readOnly
-                      className="bg-muted"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tenggat bayar</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Batal
-              </Button>
-              <SubmitButton pending={pending} loadingText="Menyimpan...">
-                Simpan Paket
-              </SubmitButton>
-            </div>
-          </form>
-        </Form>
+        <StudentForm
+          mode="package"
+          subjects={subjects}
+          initial={initial}
+          defaultLearningMode={defaultLearningMode}
+          defaultDurationMinutes={defaultDurationMinutes}
+          onSuccess={() => {
+            setOpen(false);
+            router.refresh();
+          }}
+          onCancel={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -18,7 +18,6 @@ import {
 import {
   AdjustPackageButton,
   CancelPackageButton,
-  CreatePackageButton,
 } from "@/components/students/package-form";
 import { CreateInvoiceDialog } from "@/components/payments/invoice-create-dialog";
 import { todayInTz, toDateInput } from "@/lib/utils/date";
@@ -98,7 +97,6 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Paket Pertemuan</CardTitle>
-          <CreatePackageButton studentId={studentId} />
         </CardHeader>
         <CardContent className="space-y-3">
           {activePkg ? (
@@ -134,7 +132,7 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Tidak ada paket aktif. Buat paket agar sisa pertemuan tercatat otomatis.
+              Tidak ada paket aktif. Klik &quot;Tambah Paket&quot; di atas untuk membuat paket.
             </p>
           )}
           {(packages?.length ?? 0) > 0 && (

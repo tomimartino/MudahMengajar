@@ -5,8 +5,12 @@ import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { createStudentAction, updateStudentAction } from "@/lib/actions/students";
-import { studentSchema, type StudentInput } from "@/lib/validations/student";
+import { createStudentAction, updateStudentAction, addPackageAction } from "@/lib/actions/students";
+import {
+  studentSchema,
+  packageFormSchema,
+  type StudentInput,
+} from "@/lib/validations/student";
 import {
   BILLING_TYPES,
   DAY_NAMES,
@@ -39,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { cn } from "@/lib/utils";
+import type { ActionResult } from "@/lib/actions/helpers";
 
 export interface StudentFormInitial {
   id?: string;
@@ -100,16 +105,23 @@ export function StudentForm({
   schoolLevels,
   defaultLearningMode,
   defaultDurationMinutes,
+  mode = "full",
+  onSuccess,
+  onCancel,
 }: {
   subjects: { id: string; name: string }[];
   initial?: StudentFormInitial;
   schoolLevels?: SchoolLevel[];
   defaultLearningMode?: "offline" | "online" | "hybrid";
   defaultDurationMinutes?: number;
+  mode?: "full" | "package";
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const isEdit = !!initial?.id;
+  const isPackageMode = mode === "package";
 
   // Jenjang hanya yang diajar guru; sertakan jenjang lama siswa saat edit.
   const allowedLevels: SchoolLevel[] = [
@@ -121,7 +133,9 @@ export function StudentForm({
   }
 
   const form = useForm<StudentInput>({
-    resolver: zodResolver(studentSchema) as unknown as Resolver<StudentInput>,
+    resolver: (isPackageMode
+      ? zodResolver(packageFormSchema)
+      : zodResolver(studentSchema)) as unknown as Resolver<StudentInput>,
     defaultValues: {
       full_name: initial?.full_name ?? "",
       gender: (initial?.gender as "L" | "P" | null) ?? null,
@@ -236,13 +250,23 @@ export function StudentForm({
 
   async function onSubmit(values: StudentInput) {
     setPending(true);
-    const result = isEdit
-      ? await updateStudentAction(initial!.id!, values)
-      : await createStudentAction(values);
+    let result: ActionResult;
+    if (isPackageMode) {
+      result = await addPackageAction(initial!.id!, values);
+    } else if (isEdit) {
+      result = await updateStudentAction(initial!.id!, values);
+    } else {
+      result = await createStudentAction(values);
+    }
     setPending(false);
 
     if (!result.ok) {
       toast.error(result.error);
+      return;
+    }
+    if (isPackageMode) {
+      toast.success("Paket berhasil ditambahkan.");
+      onSuccess?.();
       return;
     }
     const data = result.data as { id?: string } | undefined;
@@ -262,6 +286,7 @@ export function StudentForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">IDENTITAS SISWA</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -347,7 +372,9 @@ export function StudentForm({
             />
           </div>
         </section>
+        )}
 
+        {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">SEKOLAH</h2>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -421,7 +448,9 @@ export function StudentForm({
             />
           </div>
         </section>
+        )}
 
+        {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">ORANG TUA / WALI</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -453,6 +482,7 @@ export function StudentForm({
             />
           </div>
         </section>
+        )}
 
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">PEMBELAJARAN</h2>
@@ -765,6 +795,7 @@ export function StudentForm({
           </div>
         </section>
 
+        {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">CATATAN</h2>
           <FormField
@@ -781,13 +812,14 @@ export function StudentForm({
             )}
           />
         </section>
+        )}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => (isPackageMode ? onCancel?.() : router.back())}>
             Batal
           </Button>
           <SubmitButton pending={pending} loadingText="Menyimpan...">
-            {isEdit ? "Simpan Perubahan" : "Tambah Siswa"}
+            {isPackageMode ? "Simpan Paket" : isEdit ? "Simpan Perubahan" : "Tambah Siswa"}
           </SubmitButton>
         </div>
       </form>

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { format, getISODay } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentForm } from "@/components/students/student-form";
+import { buildSchedulePattern } from "@/lib/utils/schedule-pattern";
 import type { SchoolLevel } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Edit Siswa" };
@@ -67,19 +66,7 @@ export default async function EditStudentPage({
 
   // Pola jadwal mendatang → hari + jam, tanggal mulai, dan lokasi untuk prefill form.
   const tz = profile?.timezone ?? "Asia/Jakarta";
-  const scheduleByDay = new Map<number, string>();
-  let scheduleStartDate = "";
-  let scheduleLocation = "";
-  for (const s of upcomingSchedules ?? []) {
-    const local = toZonedTime(s.start_at, tz);
-    const day = getISODay(local);
-    if (!scheduleByDay.has(day)) scheduleByDay.set(day, format(local, "HH:mm"));
-    if (!scheduleStartDate) scheduleStartDate = format(local, "yyyy-MM-dd");
-    if (!scheduleLocation) scheduleLocation = s.location ?? "";
-  }
-  const scheduleTimes = [...scheduleByDay.entries()]
-    .map(([day, start_time]) => ({ day, start_time }))
-    .sort((a, b) => a.day - b.day);
+  const pattern = buildSchedulePattern(upcomingSchedules, tz);
 
   return (
     <div>
@@ -113,9 +100,9 @@ export default async function EditStudentPage({
           package_per_session_rate: activePackage?.per_session_rate ?? null,
           package_price: activePackage?.price ?? null,
           package_start_date: activePackage?.start_date ?? "",
-          schedule_times: scheduleTimes,
-          schedule_location: scheduleLocation,
-          schedule_start_date: scheduleStartDate,
+          schedule_times: pattern.times,
+          schedule_location: pattern.location,
+          schedule_start_date: pattern.startDate,
           status: student.status,
           subject_ids: (links ?? []).map((l) => l.subject_id),
         }}
