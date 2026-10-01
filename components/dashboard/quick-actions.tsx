@@ -11,7 +11,7 @@ const ACTIONS = [
   },
   {
     label: "Catat Pembayaran",
-    href: "/students?tab=payments",
+    href: "/payments",
     icon: ReceiptText,
     description: "Lihat tagihan & catat pembayaran",
   },

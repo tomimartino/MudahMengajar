@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/shared/badges";
 import { StudentActions } from "@/components/students/student-actions";
 import {
-  AttendanceTab,
   NotesTab,
   OverviewTab,
   PaymentsTab,
@@ -27,7 +26,6 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "schedule", label: "Jadwal" },
   { key: "sessions", label: "Pertemuan" },
-  { key: "attendance", label: "Presensi" },
   { key: "scores", label: "Nilai" },
   { key: "payments", label: "Pembayaran" },
   { key: "notes", label: "Catatan" },
@@ -151,7 +149,6 @@ export default async function StudentDetailPage({
       {activeTab === "overview" && <OverviewTab studentId={id} timezone={tz} />}
       {activeTab === "schedule" && <ScheduleTab studentId={id} timezone={tz} />}
       {activeTab === "sessions" && <SessionsTab studentId={id} timezone={tz} />}
-      {activeTab === "attendance" && <AttendanceTab studentId={id} timezone={tz} />}
       {activeTab === "scores" && <ScoresTab studentId={id} timezone={tz} />}
       {activeTab === "payments" && <PaymentsTab studentId={id} timezone={tz} />}
       {activeTab === "notes" && <NotesTab studentId={id} timezone={tz} />}

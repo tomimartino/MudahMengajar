@@ -40,9 +40,6 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
 
   const total = sessions?.length ?? 0;
   const hadir = (attendance ?? []).filter((a) => a.status === "hadir").length;
-  const izin = (attendance ?? []).filter((a) => a.status === "izin").length;
-  const sakit = (attendance ?? []).filter((a) => a.status === "sakit").length;
-  const alpha = (attendance ?? []).filter((a) => a.status === "alpha").length;
   const pct = total > 0 ? Math.round((hadir / total) * 100) : 0;
   const scores = (sessions ?? []).filter((s) => s.score !== null).map((s) => Number(s.score));
   const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
@@ -53,7 +50,6 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
   const stats = [
     { label: "Total pertemuan", value: total },
     { label: "Hadir", value: hadir },
-    { label: "Izin / Sakit / Alpha", value: `${izin} / ${sakit} / ${alpha}` },
     { label: "Kehadiran", value: `${pct}%` },
     { label: "Sisa paket", value: remaining !== null ? `${remaining}` : "—" },
     { label: "Tagihan belum lunas", value: <AmountText value={unpaidTotal} /> },
@@ -289,92 +285,6 @@ export async function SessionsTab({ studentId, timezone }: { studentId: string; 
           <AttendanceBadge status={attMap.get(s.id) ?? "alpha"} />
         </Link>
       ))}
-    </div>
-  );
-}
-
-// ============================= ATTENDANCE =============================
-
-export async function AttendanceTab({ studentId, timezone }: { studentId: string; timezone: string }) {
-  const supabase = await createClient();
-  const [{ data: rows }, { data: sessions }] = await Promise.all([
-    supabase
-      .from("attendance")
-      .select("id, session_id, status, note, created_at")
-      .eq("student_id", studentId)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("sessions")
-      .select("id, session_date, duration_minutes, material")
-      .eq("student_id", studentId),
-  ]);
-
-  if (!rows || rows.length === 0) {
-    return <EmptyState icon={ClipboardCheck} title="Belum ada riwayat presensi." />;
-  }
-
-  const sMap = new Map((sessions ?? []).map((s) => [s.id, s]));
-  const counts = { hadir: 0, izin: 0, sakit: 0, alpha: 0, dibatalkan: 0 };
-  for (const r of rows) {
-    if (r.status === "hadir") counts.hadir++;
-    else if (r.status === "izin") counts.izin++;
-    else if (r.status === "sakit") counts.sakit++;
-    else if (r.status === "alpha") counts.alpha++;
-    else counts.dibatalkan++;
-  }
-  const total = rows.length;
-  const pct = total > 0 ? Math.round((counts.hadir / total) * 100) : 0;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-        {[
-          ["Hadir", counts.hadir],
-          ["Izin", counts.izin],
-          ["Sakit", counts.sakit],
-          ["Alpha", counts.alpha],
-          ["Kehadiran", `${pct}%`],
-        ].map(([label, value]) => (
-          <Card key={String(label)}>
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-lg font-bold">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <div className="overflow-x-auto rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Durasi</TableHead>
-              <TableHead>Materi</TableHead>
-              <TableHead>Catatan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => {
-              const s = sMap.get(r.session_id);
-              return (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    {s ? <DateText value={s.session_date} tz={timezone} variant="shortDate" /> : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <AttendanceBadge status={r.status} />
-                  </TableCell>
-                  <TableCell>{s?.duration_minutes ? `${s.duration_minutes} mnt` : "—"}</TableCell>
-                  <TableCell className="max-w-56 truncate">{s?.material ?? "—"}</TableCell>
-                  <TableCell className="max-w-40 truncate">{r.note ?? "—"}</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
     </div>
   );
 }

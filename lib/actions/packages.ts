@@ -57,11 +57,43 @@ export async function adjustPackageAction(
 
 export async function cancelPackageAction(packageId: string): Promise<ActionResult> {
   const supabase = await createClient();
+
+  const { data: pkg } = await supabase
+    .from("student_packages")
+    .select("id, student_id, invoice_id")
+    .eq("id", packageId)
+    .maybeSingle();
+  if (!pkg) return fail("Paket tidak ditemukan.");
+
   const { error } = await supabase
     .from("student_packages")
     .update({ status: "cancelled" })
     .eq("id", packageId);
   if (error) return fail(actionError(error));
+
+  // Tagihan paket ikut dihapus dari daftar tagihan.
+  if (pkg.invoice_id) {
+    const { error: invoiceError } = await supabase
+      .from("invoices")
+      .delete()
+      .eq("id", pkg.invoice_id);
+    if (invoiceError) return fail(actionError(invoiceError));
+  }
+
+  // Jadwal mendatang siswa dihapus dari kalender; pertemuan yang sudah selesai tetap tercatat.
+  const { error: deleteError } = await supabase
+    .from("schedules")
+    .delete()
+    .eq("student_id", pkg.student_id)
+    .eq("status", "scheduled");
+  if (deleteError) return fail(actionError(deleteError));
+
+  // Siswa dinonaktifkan saat paket dibatalkan.
+  const { error: statusError } = await supabase
+    .from("students")
+    .update({ status: "inactive" })
+    .eq("id", pkg.student_id);
+  if (statusError) return fail(actionError(statusError));
 
   revalidatePath("/", "layout");
   return ok();

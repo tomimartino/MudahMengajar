@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import { monthLabel } from "@/lib/finance/queries";
 
 export interface ReportFilters {
   from: string;
@@ -10,7 +11,7 @@ export interface ReportFilters {
 export type ReportType =
   | "students"
   | "sessions"
-  | "attendance"
+  | "finance"
   | "payments";
 
 export interface ReportResult {
@@ -36,8 +37,8 @@ export async function buildReport(
       return buildStudentsReport(supabase, userId, f);
     case "sessions":
       return buildSessionsReport(supabase, userId, f);
-    case "attendance":
-      return buildAttendanceReport(supabase, userId, f);
+    case "finance":
+      return buildFinanceReport(supabase, userId, f);
     case "payments":
       return buildPaymentsReport(supabase, userId, f);
   }
@@ -149,33 +150,36 @@ async function buildSessionsReport(supabase: Supabase, userId: string, f: Report
   };
 }
 
-async function buildAttendanceReport(supabase: Supabase, userId: string, f: ReportFilters) {
+async function buildFinanceReport(supabase: Supabase, userId: string, f: ReportFilters) {
   let q = supabase
-    .from("attendance")
-    .select("*, students(full_name), sessions(session_date, started_at, duration_minutes, material)")
+    .from("payments")
+    .select("payment_date, amount, student_id")
     .eq("user_id", userId)
-    .gte("created_at", f.from)
-    .lt("created_at", `${f.to}T23:59:59`)
-    .order("created_at", { ascending: false });
+    .gte("payment_date", f.from)
+    .lte("payment_date", f.to);
   if (f.student) q = q.eq("student_id", f.student);
-  const { data } = await q.limit(2000);
+  const { data } = await q.limit(5000);
 
-  const rows = (data ?? []).map((a) => {
-    const s = a.sessions as unknown as {
-      session_date: string;
-      started_at: string | null;
-      duration_minutes: number | null;
-      material: string | null;
-    } | null;
-    return {
-      Tanggal: s?.session_date ?? "",
-      Siswa: (a.students as unknown as { full_name: string }).full_name,
-      Status: STATUS_LABEL[a.status] ?? a.status,
-      "Durasi (menit)": s?.duration_minutes ?? "",
-      Materi: s?.material ?? "",
-    };
-  });
-  return { headers: ["Tanggal", "Siswa", "Status", "Durasi (menit)", "Materi"], rows };
+  const byMonth = new Map<string, { total: number; count: number; students: Set<string> }>();
+  for (const p of data ?? []) {
+    const key = p.payment_date.slice(0, 7);
+    const cur = byMonth.get(key) ?? { total: 0, count: 0, students: new Set<string>() };
+    cur.total += Number(p.amount);
+    cur.count += 1;
+    cur.students.add(p.student_id);
+    byMonth.set(key, cur);
+  }
+
+  const rows = [...byMonth.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, v]) => ({
+      Bulan: monthLabel(key),
+      Pendapatan: v.total,
+      Transaksi: v.count,
+      Siswa: v.students.size,
+    }));
+
+  return { headers: ["Bulan", "Pendapatan", "Transaksi", "Siswa"], rows };
 }
 
 async function buildPaymentsReport(supabase: Supabase, userId: string, f: ReportFilters) {

@@ -58,9 +58,6 @@ export const studentSchema = z
       if (parseAmount(v.package_per_session_rate) <= 0) {
         ctx.addIssue({ code: "custom", path: ["package_per_session_rate"], message: "Tarif per pertemuan wajib diisi." });
       }
-      if (!dateString.safeParse(v.package_start_date).success) {
-        ctx.addIssue({ code: "custom", path: ["package_start_date"], message: "Tenggat bayar wajib diisi." });
-      }
     }
     // Jadwal opsional; tiap entri hari wajib punya jam mulai valid (diwajibkan schema di atas).
     const seenDays = new Set<number>();

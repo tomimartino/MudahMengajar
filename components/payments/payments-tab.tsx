@@ -1,11 +1,12 @@
 import { ReceiptText, Wallet } from "lucide-react";
+import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InvoiceStatusBadge } from "@/components/shared/badges";
 import { InvoiceRowActions } from "@/components/payments/invoice-row-actions";
-import { GenerateMonthlyButton } from "@/components/payments/generate-monthly-button";
+import { MonthYearFilter } from "@/components/payments/month-filter";
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ const PAYMENT_TYPES: Record<string, string> = {
   other: "Lainnya",
 };
 
-export async function PaymentsTabContent() {
+export async function PaymentsTabContent({ month }: { month?: string }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,8 +43,17 @@ export async function PaymentsTabContent() {
     .single();
   const tz = profile?.timezone ?? "Asia/Jakarta";
   const today = toDateInput(todayInTz(tz), tz);
+  const todayMonth = today.slice(0, 7);
 
-  const [{ data: students }, { data: invoices }, { data: payments }, { data: invoicePayments }] =
+  // Bulan terpilih (default bulan berjalan); filter tagihan & transaksi sesuai bulan.
+  const selectedMonth =
+    typeof month === "string" && /^\d{4}-\d{2}$/.test(month) ? month : todayMonth;
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const monthStart = `${selectedMonth}-01`;
+  const monthEnd = format(new Date(selYear, selMonthNum, 0), "yyyy-MM-dd");
+  const nextMonthStart = format(new Date(selYear, selMonthNum, 1), "yyyy-MM-dd");
+
+  const [{ data: students }, { data: invoices }, { data: payments }, { data: invoicePayments }, { data: oldestPayment }, { data: oldestInvoice }] =
     await Promise.all([
       supabase
         .from("students")
@@ -55,12 +65,16 @@ export async function PaymentsTabContent() {
         .from("invoices")
         .select("*, students(full_name)")
         .eq("user_id", user!.id)
+        .gte("created_at", monthStart)
+        .lt("created_at", nextMonthStart)
         .order("created_at", { ascending: false })
         .limit(200),
       supabase
         .from("payments")
         .select("*, students(full_name)")
         .eq("user_id", user!.id)
+        .gte("payment_date", monthStart)
+        .lte("payment_date", monthEnd)
         .order("payment_date", { ascending: false })
         .limit(200),
       supabase
@@ -69,7 +83,28 @@ export async function PaymentsTabContent() {
         .eq("user_id", user!.id)
         .not("invoice_id", "is", null)
         .limit(2000),
+      supabase
+        .from("payments")
+        .select("payment_date")
+        .eq("user_id", user!.id)
+        .order("payment_date")
+        .limit(1),
+      supabase
+        .from("invoices")
+        .select("created_at")
+        .eq("user_id", user!.id)
+        .order("created_at")
+        .limit(1),
     ]);
+
+  // Daftar tahun untuk filter: dari data tertua sampai tahun berjalan.
+  const minYear = Math.min(
+    Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
+    Number((oldestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
+    selYear
+  );
+  const years: string[] = [];
+  for (let y = selYear; y >= minYear; y--) years.push(String(y));
 
   const paidByInvoice = new Map<string, number>();
   for (const p of invoicePayments ?? []) {
@@ -100,8 +135,8 @@ export async function PaymentsTabContent() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <GenerateMonthlyButton />
+      <div className="mb-4">
+        <MonthYearFilter month={selectedMonth} years={years} />
       </div>
 
       <div className="mb-4 mt-5 flex gap-1 border-b">

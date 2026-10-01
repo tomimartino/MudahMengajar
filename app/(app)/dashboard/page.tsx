@@ -103,23 +103,11 @@ export default async function DashboardPage({
       "id, start_at, end_at, status, learning_mode, location, notes, recurrence_rule, student_id, students(full_name, grade_level, school_level), subjects(name)"
     )
     .eq("user_id", user!.id)
-    .in("status", ["scheduled", "completed"])
+    .in("status", ["scheduled", "completed", "cancelled"])
     .gte("start_at", fromZonedTime(rangeStart, tz).toISOString())
     .lte("start_at", fromZonedTime(rangeEnd, tz).toISOString())
     .order("start_at")
     .limit(1000);
-
-  // Siswa dengan paket aktif bertarif per pertemuan (untuk opsi pengurangan harga saat pembatalan)
-  const { data: activePackages } = await supabase
-    .from("student_packages")
-    .select("student_id, per_session_rate")
-    .eq("user_id", user!.id)
-    .eq("status", "active");
-  const packageStudentIds = new Set(
-    (activePackages ?? [])
-      .filter((p) => p.per_session_rate !== null)
-      .map((p) => p.student_id)
-  );
 
   // Materi/PR/catatan dari pertemuan yang sudah tercatat (untuk opsi Isi Materi)
   const scheduleIds = (schedules ?? []).map((s) => s.id);
@@ -183,7 +171,6 @@ export default async function DashboardPage({
       grade_level: student.grade_level,
       school_level: student.school_level,
       session: sessionsBySchedule.get(s.id) ?? null,
-      canReducePackagePrice: packageStudentIds.has(s.student_id),
     };
   });
 
@@ -224,7 +211,7 @@ export default async function DashboardPage({
           icon={Wallet}
           label="Belum Bayar"
           value={stats.open_invoices}
-          href="/students?tab=payments"
+          href="/payments"
         />
         <StatCard
           icon={DollarSign}

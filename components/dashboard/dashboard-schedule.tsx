@@ -116,6 +116,17 @@ export function DashboardSchedule({
     return map;
   }, [schedules, timezone]);
 
+  // Jumlah murid di kalender tidak menghitung jadwal yang dibatalkan.
+  const countsByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const s of schedules) {
+      if (s.status === "cancelled") continue;
+      const key = format(toZonedTime(s.start_at, timezone), "yyyy-MM-dd");
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [schedules, timezone]);
+
   const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
 
   const header =
@@ -178,7 +189,7 @@ export function DashboardSchedule({
       {view === "month" ? (
         <div className="grid grid-cols-7 border-l border-t">
           {days.map((d) => {
-            const count = schedulesByDay.get(dayKey(d))?.length ?? 0;
+            const count = countsByDay.get(dayKey(d)) ?? 0;
             const isSelected = dayKey(d) === selectedDate;
             return (
               <button
@@ -211,7 +222,7 @@ export function DashboardSchedule({
       ) : (
         <div className={cn("grid gap-3", view === "week" && "grid-cols-2 md:grid-cols-7")}>
           {days.map((d) => {
-            const count = schedulesByDay.get(dayKey(d))?.length ?? 0;
+            const count = countsByDay.get(dayKey(d)) ?? 0;
             const isSelected = dayKey(d) === selectedDate;
             return (
               <button
@@ -286,11 +297,12 @@ export function DashboardSchedule({
                 </button>
                 <div className="flex items-center gap-2">
                   <ScheduleStatusBadge status={s.status} startAt={s.start_at} endAt={s.end_at} />
-                  {s.status === "scheduled" ? (
+                  {s.status === "scheduled" && (
                     <Button size="sm" onClick={() => setCompleting(s)}>
                       <CheckCircle2 className="size-4" /> Selesaikan
                     </Button>
-                  ) : (
+                  )}
+                  {s.status === "completed" && (
                     <Button size="sm" variant="outline" onClick={() => setEditing(s)}>
                       <Pencil className="size-4" /> Isi Materi
                     </Button>

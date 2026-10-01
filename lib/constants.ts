@@ -31,8 +31,9 @@ export const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
   { label: "Murid", href: "/students", icon: "Users" },
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
-  { label: "Laporan", href: "/reports", icon: "FileBarChart" },
+  { label: "Pembayaran", href: "/payments", icon: "ReceiptText" },
   { label: "Keuangan", href: "/finance", icon: "Wallet" },
+  { label: "Laporan", href: "/reports", icon: "FileBarChart" },
 ] as const;
 
 export const MOBILE_NAV_ITEMS = [
@@ -40,7 +41,7 @@ export const MOBILE_NAV_ITEMS = [
   { label: "Murid", href: "/students", icon: "Users" },
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
   { label: "Keuangan", href: "/finance", icon: "Wallet" },
-  { label: "Profil", href: "/profile", icon: "BadgeCheck" },
+  { label: "Pembayaran", href: "/payments", icon: "ReceiptText" },
 ] as const;
 
 export const SCHOOL_LEVELS = ["SD", "SMP", "SMA", "Umum"] as const;

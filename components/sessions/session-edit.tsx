@@ -5,14 +5,11 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { updateAttendanceAction, updateSessionAction } from "@/lib/actions/sessions";
+import { updateSessionAction } from "@/lib/actions/sessions";
 import {
-  updateAttendanceSchema,
   updateSessionSchema,
-  type UpdateAttendanceInput,
   type UpdateSessionInput,
 } from "@/lib/validations/session";
-import { ATTENDANCE_STATUS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -23,13 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -185,96 +175,6 @@ export function SessionEditForm({
             <div className="flex justify-end">
               <SubmitButton pending={pending} loadingText="Menyimpan...">
                 Simpan Perubahan
-              </SubmitButton>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function AttendanceEditForm({
-  attendanceId,
-  status,
-  note,
-}: {
-  attendanceId: string;
-  status: string;
-  note: string | null;
-}) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-
-  const form = useForm<UpdateAttendanceInput>({
-    resolver: zodResolver(updateAttendanceSchema) as unknown as Resolver<UpdateAttendanceInput>,
-    defaultValues: { status: status as UpdateAttendanceInput["status"], note: note ?? "" },
-  });
-
-  async function onSubmit(values: UpdateAttendanceInput) {
-    setPending(true);
-    const result = await updateAttendanceAction(attendanceId, values);
-    setPending(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Presensi berhasil diperbarui.");
-    router.refresh();
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Presensi</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status kehadiran</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(ATTENDANCE_STATUS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Catatan</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Catatan presensi..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              Mengubah presensi tidak mengubah potongan paket. Koreksi sisa paket lewat halaman
-              siswa.
-            </p>
-            <div className="flex justify-end">
-              <SubmitButton pending={pending} loadingText="Menyimpan...">
-                Simpan Presensi
               </SubmitButton>
             </div>
           </form>

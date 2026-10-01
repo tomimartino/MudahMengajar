@@ -240,7 +240,7 @@ export function CancelPackageButton({ packageId }: { packageId: string }) {
   return (
     <ConfirmDialog
       title="Batalkan paket?"
-      description="Paket akan berhenti aktif dan tidak lagi mengurangi pertemuan otomatis."
+      description="Paket akan berhenti aktif dan jadwal mendatang siswa dihapus dari kalender. Pertemuan yang sudah selesai tetap tercatat."
       confirmLabel="Batalkan Paket"
       onConfirm={async () => {
         const result = await cancelPackageAction(packageId);

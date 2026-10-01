@@ -9,6 +9,7 @@ import {
   Ellipsis,
   FileBarChart,
   LayoutDashboard,
+  ReceiptText,
   Settings,
   Users,
   Wallet,
@@ -26,6 +27,7 @@ const ICONS: Record<string, LucideIcon> = {
   BookOpen,
   FileBarChart,
   Wallet,
+  ReceiptText,
   BadgeCheck,
   Settings,
 };

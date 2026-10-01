@@ -555,65 +555,57 @@ export function StudentForm({
           />
 
           {billingType === "package" && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="package_sessions"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jumlah pertemuan *</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="12" inputMode="numeric" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="package_per_session_rate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tarif per pertemuan *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="100.000" inputMode="numeric" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="package_start_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tenggat bayar *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="package_price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Harga paket</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="1.200.000"
-                        inputMode="numeric"
-                        readOnly
-                        className="bg-muted"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="package_sessions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jumlah pertemuan *</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="12" inputMode="numeric" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="package_per_session_rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tarif per pertemuan *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="100.000" inputMode="numeric" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="package_price"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-start-2">
+                      <FormLabel>Harga paket</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="1.200.000"
+                          inputMode="numeric"
+                          readOnly
+                          className="bg-muted"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tenggat bayar otomatis mengikuti hari terakhir jadwal.
+              </p>
             </div>
           )}
 

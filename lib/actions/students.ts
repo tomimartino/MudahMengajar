@@ -63,20 +63,24 @@ function monthlyDueDate(dueDay: number): string {
 /**
  * Tagihan otomatis sesuai sistem pembayaran siswa.
  * package → RPC create_package (paket + invoice); monthly/per_session → RPC create_invoice.
+ * Tenggat bayar paket mengikuti hari terakhir jadwal (dueDate).
  * Mengembalikan invoice_id (null jika tidak membuat tagihan).
  */
 async function createBillingInvoice(
   supabase: Awaited<ReturnType<typeof createClient>>,
   d: ReturnType<typeof studentSchema.parse>,
-  studentId: string
+  studentId: string,
+  dueDate?: string
 ): Promise<string | null> {
   if (d.billing_type === "package") {
+    const startDate =
+      dueDate || d.package_start_date || format(new Date(), "yyyy-MM-dd");
     const { data, error } = await supabase.rpc("create_package", {
       p_student_id: studentId,
       p_total_sessions: Number(d.package_sessions),
       p_per_session_rate: parseAmount(d.package_per_session_rate),
       p_price: parseAmount(d.package_price),
-      p_start_date: d.package_start_date,
+      p_start_date: startDate,
     });
     if (error) throw error;
     const result = data as unknown as { invoice_id: string | null };
@@ -113,20 +117,25 @@ function nextMonthlyDueDate(dueDay: number, tz: string): Date {
 }
 
 /**
- * Jadwal (opsional): guru memilih hari + jam (tiap hari bisa berbeda), banyaknya
- * mengikuti sistem pembayaran. package → sebanyak jumlah pertemuan paket; monthly →
- * pada hari terpilih sampai tanggal jatuh tempo berikutnya. Dimulai dari
- * schedule_start_date bila diisi (boleh lampau — pertemuan lewat berstatus completed);
- * jika kosong, mulai hari ini bila jam mulai belum lewat. Tanpa recurrence_rule.
+ * Hitung tanggal pertemuan dari pola jadwal (hari + jam), banyaknya mengikuti
+ * sistem pembayaran. package → sebanyak jumlah pertemuan paket; monthly → pada
+ * hari terpilih sampai tanggal jatuh tempo berikutnya. Dimulai dari
+ * schedule_start_date bila diisi (boleh lampau); jika kosong, mulai hari ini
+ * bila jam mulai belum lewat.
  */
-async function createInitialSchedule(
+async function computeScheduleDates(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  studentId: string,
   d: ReturnType<typeof studentSchema.parse>
-): Promise<void> {
+): Promise<{
+  dates: Array<{ date: string; time: string }>;
+  tz: string;
+  durationMinutes: number;
+}> {
   const timeByDay = new Map(d.schedule_times.map((t) => [t.day, t.start_time]));
-  if (timeByDay.size === 0) return;
+  if (timeByDay.size === 0) {
+    return { dates: [], tz: "Asia/Jakarta", durationMinutes: 90 };
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -181,9 +190,25 @@ async function createInitialSchedule(
       cursor = addDays(cursor, 1);
       guard += 1;
     }
-  } else {
-    return;
   }
+
+  return { dates, tz, durationMinutes };
+}
+
+/**
+ * Jadwal (opsional): buat baris schedules dari pola jadwal. Tanpa recurrence_rule.
+ * computed dapat dipakai ulang dari computeScheduleDates agar tidak dihitung dua kali.
+ */
+async function createInitialSchedule(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  studentId: string,
+  d: ReturnType<typeof studentSchema.parse>,
+  computed?: Awaited<ReturnType<typeof computeScheduleDates>>
+): Promise<void> {
+  const { dates, tz, durationMinutes } =
+    computed ?? (await computeScheduleDates(supabase, userId, d));
+  if (dates.length === 0) return;
 
   const rows = dates.map(({ date, time }) => {
     const startLocal = parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", new Date());
@@ -247,11 +272,18 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
 
     await replaceSubjects(supabase, user.id, student.id, d.subject_ids);
 
+    // Jadwal (opsional) dihitung dulu — hari terakhir jadwal menjadi tenggat bayar paket.
+    const schedule = await computeScheduleDates(supabase, user.id, d);
+    const dueDate =
+      schedule.dates.length > 0
+        ? schedule.dates[schedule.dates.length - 1].date
+        : "";
+
     // Tagihan otomatis sesuai sistem pembayaran
-    await createBillingInvoice(supabase, d, student.id);
+    await createBillingInvoice(supabase, d, student.id, dueDate);
 
     // Jadwal (opsional) — banyaknya mengikuti sistem pembayaran
-    await createInitialSchedule(supabase, user.id, student.id, d);
+    await createInitialSchedule(supabase, user.id, student.id, d, schedule);
 
     revalidatePath("/", "layout");
     return ok({ id: student.id });

@@ -2,9 +2,12 @@ import { z } from "zod";
 import { ATTENDANCE_STATUS } from "@/lib/constants";
 
 export const completeSessionSchema = z.object({
-  attendance: z.enum(Object.keys(ATTENDANCE_STATUS) as [string, ...string[]], {
-    message: "Pilih status kehadiran.",
-  }),
+  attendance: z
+    .enum(Object.keys(ATTENDANCE_STATUS) as [string, ...string[]], {
+      message: "Pilih status kehadiran.",
+    })
+    .optional()
+    .default("hadir"),
   duration_minutes: z.coerce
     .number({ message: "Durasi wajib diisi." })
     .int("Durasi harus bilangan bulat.")

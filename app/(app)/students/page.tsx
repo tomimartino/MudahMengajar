@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ReceiptText, UserPlus, Users } from "lucide-react";
+import { UserPlus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentFilters } from "@/components/students/student-filters";
 import { StudentTable, type EnrichedStudent } from "@/components/students/student-table";
 import { StudentCard } from "@/components/students/student-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { PaymentsTabContent } from "@/components/payments/payments-tab";
 import { Button } from "@/components/ui/button";
 import { PAGE_SIZE } from "@/lib/constants";
 import { todayInTz, toDateInput } from "@/lib/utils/date";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Murid" };
 
@@ -21,25 +19,12 @@ export default async function StudentsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const tab = typeof sp.tab === "string" && sp.tab === "payments" ? "payments" : "students";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const status = typeof sp.status === "string" ? sp.status : "";
   const level = typeof sp.level === "string" ? sp.level : "";
   const subject = typeof sp.subject === "string" ? sp.subject : "";
   const payment = typeof sp.payment === "string" ? sp.payment : "";
   const page = Math.max(1, Number(typeof sp.page === "string" ? sp.page : "1") || 1);
-
-  if (tab === "payments") {
-    return (
-      <div>
-        <PageHeader title="Murid" description="Kelola siswa, tagihan, dan transaksi pembayaran." />
-        <StudentTabs current="payments" />
-        <div className="pt-4">
-          <PaymentsTabContent />
-        </div>
-      </div>
-    );
-  }
 
   const supabase = await createClient();
   const {
@@ -238,11 +223,9 @@ export default async function StudentsPage({
           </Button>
         }
       />
-      <StudentTabs current="students" />
       <div className="mb-4 mt-4">
         <StudentFilters subjects={subjects ?? []} />
       </div>
-
       <div className="hidden md:block">
         <StudentTable students={enriched} timezone={tz} />
       </div>
@@ -297,7 +280,6 @@ export default async function StudentsPage({
             </Button>
           }
         />
-        <StudentTabs current="students" />
         <div className="mb-4 mt-4">
           <StudentFilters subjects={subjectList} />
         </div>
@@ -322,35 +304,6 @@ export default async function StudentsPage({
       </div>
     );
   }
-}
-
-function StudentTabs({ current }: { current: "students" | "payments" }) {
-  return (
-    <div className="flex gap-1 border-b">
-      <Link
-        href="/students"
-        className={cn(
-          "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-          current === "students"
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <Users className="size-4" /> Siswa
-      </Link>
-      <Link
-        href="/students?tab=payments"
-        className={cn(
-          "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-          current === "payments"
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <ReceiptText className="size-4" /> Pembayaran
-      </Link>
-    </div>
-  );
 }
 
 function buildPageUrl(sp: Record<string, string | string[] | undefined>, page: number): string {

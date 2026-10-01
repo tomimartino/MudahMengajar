@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, ClipboardCheck } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { AttendanceBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
 import { EmptyState } from "@/components/shared/empty-state";
-import { AttendanceTabContent } from "@/components/attendance/attendance-tab";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,7 +23,6 @@ import {
   todayInTz,
   toDateInput,
 } from "@/lib/utils/date";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Pertemuan" };
 
@@ -34,28 +32,11 @@ export default async function SessionsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const tab = typeof sp.tab === "string" && sp.tab === "attendance" ? "attendance" : "sessions";
   const studentId = typeof sp.student === "string" ? sp.student : "";
-  const status = typeof sp.status === "string" && sp.status !== "all" ? sp.status : "";
   const month =
     typeof sp.month === "string" && /^\d{4}-\d{2}$/.test(sp.month)
       ? sp.month
       : toDateInput(todayInTz("Asia/Jakarta"), "Asia/Jakarta").slice(0, 7);
-
-  if (tab === "attendance") {
-    return (
-      <div>
-        <PageHeader
-          title="Pertemuan"
-          description="Catatan kegiatan belajar dan riwayat kehadiran."
-        />
-        <SessionTabs current="attendance" />
-        <div className="pt-4">
-          <AttendanceTabContent month={month} studentId={studentId} status={status} />
-        </div>
-      </div>
-    );
-  }
 
   const supabase = await createClient();
   const {
@@ -103,7 +84,6 @@ export default async function SessionsPage({
   return (
     <div>
       <PageHeader title="Pertemuan" description="Catatan kegiatan belajar per pertemuan." />
-      <SessionTabs current="sessions" />
       <div className="mb-4 mt-4 flex flex-wrap items-end gap-3">
         <MonthFilter month={month} monthOptions={monthOptions} />
         <StudentFilter students={students ?? []} studentId={studentId} />
@@ -165,33 +145,3 @@ export default async function SessionsPage({
     </div>
   );
 }
-
-function SessionTabs({ current }: { current: "sessions" | "attendance" }) {
-  return (
-    <div className="flex gap-1 border-b">
-      <Link
-        href="/sessions"
-        className={cn(
-          "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-          current === "sessions"
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <BookOpen className="size-4" /> Pertemuan
-      </Link>
-      <Link
-        href="/sessions?tab=attendance"
-        className={cn(
-          "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-          current === "attendance"
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <ClipboardCheck className="size-4" /> Presensi
-      </Link>
-    </div>
-  );
-}
-

@@ -6,7 +6,7 @@ import { csvResponse, toCSV } from "@/lib/utils/csv";
 const VALID_TYPES: ReportType[] = [
   "students",
   "sessions",
-  "attendance",
+  "finance",
   "payments",
 ];
 

@@ -5,7 +5,7 @@ import { ArrowLeft, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceBadge, StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
-import { AttendanceEditForm, SessionEditForm } from "@/components/sessions/session-edit";
+import { SessionEditForm } from "@/components/sessions/session-edit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildWaLink, learningReportMessage } from "@/lib/utils/whatsapp";
@@ -149,7 +149,6 @@ export default async function SessionDetailPage({
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <AttendanceEditForm attendanceId={att?.id ?? ""} status={att?.status ?? "hadir"} note={att?.note ?? null} />
         <SessionEditForm session={session} />
       </div>
     </div>

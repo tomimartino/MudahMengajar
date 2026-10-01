@@ -100,7 +100,7 @@ export default async function InvoicePage({
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Button asChild variant="outline" size="sm">
-          <Link href="/students?tab=payments">
+          <Link href="/payments">
             <ArrowLeft className="size-4" /> Kembali
           </Link>
         </Button>

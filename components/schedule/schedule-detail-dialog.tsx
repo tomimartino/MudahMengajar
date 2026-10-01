@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { toast } from "sonner";
-import { Ban, CalendarRange, ExternalLink, MapPin, Pencil, Repeat2 } from "lucide-react";
-import { cancelScheduleAction } from "@/lib/actions/schedule";
+import { ArrowLeftRight, Ban, CalendarRange, ExternalLink, MapPin, Pencil, Repeat2 } from "lucide-react";
+import { cancelScheduleAction, switchScheduleAction } from "@/lib/actions/schedule";
 import { ScheduleStatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { LEARNING_MODES } from "@/lib/constants";
 
 export interface ScheduleItem {
@@ -31,7 +34,6 @@ export interface ScheduleItem {
   student_id: string;
   student_name: string;
   subject_name: string;
-  canReducePackagePrice: boolean;
 }
 
 export function ScheduleDetailDialog({
@@ -49,21 +51,40 @@ export function ScheduleDetailDialog({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [reducePrice, setReducePrice] = useState(false);
+
+  // Konfirmasi pembatalan + keterangan opsional
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
+
+  // Pindah jadwal (switch)
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [switchPending, setSwitchPending] = useState(false);
+  const localStart = toZonedTime(new Date(schedule.start_at), timezone);
+  const [switchDate, setSwitchDate] = useState(format(localStart, "yyyy-MM-dd"));
+  const [switchTime, setSwitchTime] = useState(format(localStart, "HH:mm"));
 
   async function handleCancel() {
     setPending(true);
-    const result = await cancelScheduleAction(schedule.id, reducePrice);
+    const result = await cancelScheduleAction(schedule.id, cancelNote);
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success(
-      reducePrice
-        ? "Jadwal dibatalkan dan harga paket dikurangi."
-        : "Jadwal dibatalkan."
-    );
+    toast.success("Jadwal dibatalkan. Pertemuan dan harga paket dikurangi.");
+    onOpenChange(false);
+    router.refresh();
+  }
+
+  async function handleSwitch() {
+    setSwitchPending(true);
+    const result = await switchScheduleAction(schedule.id, { date: switchDate, time: switchTime });
+    setSwitchPending(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Jadwal dipindahkan.");
     onOpenChange(false);
     router.refresh();
   }
@@ -108,14 +129,63 @@ export function ScheduleDetailDialog({
             </div>
           )}
           {schedule.notes && <p className="text-muted-foreground">{schedule.notes}</p>}
-          {schedule.status === "scheduled" && schedule.canReducePackagePrice && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <Checkbox
-                checked={reducePrice}
-                onCheckedChange={(v) => setReducePrice(v === true)}
-              />
-              Kurangi harga paket sebesar tarif per pertemuan
-            </label>
+
+          {switchOpen && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Tanggal</p>
+                  <Input
+                    type="date"
+                    value={switchDate}
+                    onChange={(e) => setSwitchDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Jam</p>
+                  <Input
+                    type="time"
+                    value={switchTime}
+                    onChange={(e) => setSwitchTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSwitchOpen(false)}>
+                  Batal
+                </Button>
+                <Button size="sm" disabled={switchPending} onClick={() => void handleSwitch()}>
+                  {switchPending ? "Memindahkan..." : "Pindahkan"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {confirmCancel && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Keterangan (opsional)</p>
+                <Textarea
+                  rows={2}
+                  placeholder="Alasan pembatalan..."
+                  value={cancelNote}
+                  onChange={(e) => setCancelNote(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setConfirmCancel(false)}>
+                  Batal
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => void handleCancel()}
+                >
+                  <Ban className="size-4" /> {pending ? "Membatalkan..." : "Batalkan"}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
@@ -130,14 +200,28 @@ export function ScheduleDetailDialog({
             </Link>
           </Button>
           {schedule.status === "scheduled" && (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={pending}
-              onClick={() => void handleCancel()}
-            >
-              <Ban className="size-4" /> {pending ? "Membatalkan..." : "Batalkan Jadwal"}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setConfirmCancel(false);
+                  setSwitchOpen(!switchOpen);
+                }}
+              >
+                <ArrowLeftRight className="size-4" /> Pindah Jadwal
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setSwitchOpen(false);
+                  setConfirmCancel(!confirmCancel);
+                }}
+              >
+                <Ban className="size-4" /> Batalkan Jadwal
+              </Button>
+            </>
           )}
         </div>
       </DialogContent>

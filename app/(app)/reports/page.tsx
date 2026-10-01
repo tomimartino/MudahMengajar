@@ -23,11 +23,11 @@ export const metadata: Metadata = { title: "Laporan" };
 const REPORT_TYPES: { key: ReportType; label: string }[] = [
   { key: "students", label: "Laporan Siswa" },
   { key: "sessions", label: "Laporan Pertemuan" },
-  { key: "attendance", label: "Laporan Kehadiran" },
+  { key: "finance", label: "Laporan Keuangan" },
   { key: "payments", label: "Laporan Pembayaran" },
 ];
 
-const MONEY_HEADERS = new Set(["Total", "Nominal", "Tagihan Belum Lunas"]);
+const MONEY_HEADERS = new Set(["Total", "Nominal", "Pendapatan", "Tagihan Belum Lunas"]);
 
 export default async function ReportsPage({
   searchParams,
