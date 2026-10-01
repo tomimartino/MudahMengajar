@@ -102,7 +102,7 @@ export async function updateAttendanceAction(
 /**
  * Isi/edit materi untuk jadwal yang sudah selesai (completed).
  * Upsert sesi berdasarkan schedule_id: update bila sudah ada, insert bila belum.
- * Kehadiran di-upsert di tabel attendance (unique session_id + student_id).
+ * Kehadiran tidak lagi diubah dari sini; diatur lewat halaman pertemuan.
  */
 export async function saveSessionForScheduleAction(
   scheduleId: string,
@@ -183,27 +183,29 @@ export async function saveSessionForScheduleAction(
     sessionId = inserted.id;
   }
 
-  const { data: att } = await supabase
-    .from("attendance")
-    .select("id")
-    .eq("session_id", sessionId)
-    .eq("student_id", schedule.student_id)
-    .maybeSingle();
-
-  if (att) {
-    const { error } = await supabase
+  if (d.attendance) {
+    const { data: att } = await supabase
       .from("attendance")
-      .update({ status: d.attendance })
-      .eq("id", att.id);
-    if (error) return fail(actionError(error));
-  } else {
-    const { error } = await supabase.from("attendance").insert({
-      user_id: user.id,
-      session_id: sessionId,
-      student_id: schedule.student_id,
-      status: d.attendance,
-    });
-    if (error) return fail(actionError(error));
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("student_id", schedule.student_id)
+      .maybeSingle();
+
+    if (att) {
+      const { error } = await supabase
+        .from("attendance")
+        .update({ status: d.attendance })
+        .eq("id", att.id);
+      if (error) return fail(actionError(error));
+    } else {
+      const { error } = await supabase.from("attendance").insert({
+        user_id: user.id,
+        session_id: sessionId,
+        student_id: schedule.student_id,
+        status: d.attendance,
+      });
+      if (error) return fail(actionError(error));
+    }
   }
 
   revalidatePath("/", "layout");

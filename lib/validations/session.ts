@@ -45,9 +45,11 @@ export const updateAttendanceSchema = z.object({
 
 // Isi/edit materi untuk jadwal yang sudah selesai (upsert sesi by schedule)
 export const saveSessionForScheduleSchema = z.object({
-  attendance: z.enum(Object.keys(ATTENDANCE_STATUS) as [string, ...string[]], {
-    message: "Pilih status kehadiran.",
-  }),
+  attendance: z
+    .enum(Object.keys(ATTENDANCE_STATUS) as [string, ...string[]], {
+      message: "Pilih status kehadiran.",
+    })
+    .optional(),
   material: z.string().optional().default(""),
   sub_material: z.string().optional().default(""),
   learning_notes: z.string().optional().default(""),

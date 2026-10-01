@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ReceiptText, Users, Wallet } from "lucide-react";
+import { ReceiptText, TrendingUp, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { YearFilter } from "@/components/finance/year-filter";
@@ -17,8 +17,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  MONTH_KEY_RE,
+  aggregateInvoiceMonthly,
   aggregateMonthly,
+  MONTH_KEY_RE,
   monthLabel,
 } from "@/lib/finance/queries";
 import { PAYMENT_METHODS, PAYMENT_TYPES } from "@/lib/constants";
@@ -57,27 +58,42 @@ export default async function FinancePage({
   const todayMonth = toDateInput(todayInTz(tz), tz).slice(0, 7);
   const nowYear = todayMonth.slice(0, 4);
 
-  // Rentang tahun yang tersedia berdasarkan data pembayaran (selalu memuat tahun berjalan).
-  const [{ data: oldestPayment }, { data: newestPayment }] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("payment_date")
-      .eq("user_id", user!.id)
-      .order("payment_date")
-      .limit(1),
-    supabase
-      .from("payments")
-      .select("payment_date")
-      .eq("user_id", user!.id)
-      .order("payment_date", { ascending: false })
-      .limit(1),
-  ]);
+  // Rentang tahun yang tersedia berdasarkan data pembayaran & tagihan (selalu memuat tahun berjalan).
+  const [{ data: oldestPayment }, { data: newestPayment }, { data: oldestInvoice }, { data: newestInvoice }] =
+    await Promise.all([
+      supabase
+        .from("payments")
+        .select("payment_date")
+        .eq("user_id", user!.id)
+        .order("payment_date")
+        .limit(1),
+      supabase
+        .from("payments")
+        .select("payment_date")
+        .eq("user_id", user!.id)
+        .order("payment_date", { ascending: false })
+        .limit(1),
+      supabase
+        .from("invoices")
+        .select("created_at")
+        .eq("user_id", user!.id)
+        .order("created_at")
+        .limit(1),
+      supabase
+        .from("invoices")
+        .select("created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
   const minYear = Math.min(
     Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
+    Number((oldestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
     Number(nowYear)
   );
   const maxYear = Math.max(
     Number((newestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
+    Number((newestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
     Number(nowYear)
   );
   const years: string[] = [];
@@ -103,8 +119,20 @@ export default async function FinancePage({
     .order("payment_date")
     .limit(2000);
 
+  // Estimasi pendapatan: seluruh nominal tagihan tahun ini, sudah bayar maupun belum.
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("amount, created_at")
+    .eq("user_id", user!.id)
+    .gte("created_at", `${year}-01-01`)
+    .lte("created_at", `${year}-12-31`)
+    .limit(2000);
+
   const rows = (payments ?? []) as unknown as PaymentRow[];
   const aggregates = aggregateMonthly(rows);
+  const invoiceEstimates = aggregateInvoiceMonthly(
+    (invoices ?? []) as unknown as { created_at: string; amount: string }[]
+  );
   const selected = aggregates.get(month) ?? {
     total: 0,
     count: 0,
@@ -121,25 +149,29 @@ export default async function FinancePage({
     <div>
       <PageHeader
         title="Keuangan"
-        description="Rekap pendapatan bulanan dari pembayaran siswa."
+        description="Rekap pendapatan dan estimasi dari tagihan siswa."
       />
 
       <div className="mb-4">
         <YearFilter year={year} years={years} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={Wallet}
           label={`Pendapatan ${label}`}
           value={<AmountText value={selected.total} />}
         />
-        <StatCard icon={ReceiptText} label="Transaksi" value={selected.count} />
-        <StatCard icon={Users} label="Siswa Membayar" value={selected.students.size} />
+        <StatCard
+          icon={TrendingUp}
+          label={`Estimasi Pendapatan ${label}`}
+          value={<AmountText value={invoiceEstimates.get(month) ?? 0} />}
+          hint="Total tagihan siswa, sudah & belum bayar."
+        />
       </div>
 
       <h2 className="mb-2 mt-8 flex items-center gap-2 text-base font-semibold">
-        <Wallet className="size-4 text-primary" /> Pendapatan per Bulan
+        <TrendingUp className="size-4 text-primary" /> Estimasi Pendapatan per Bulan
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {monthKeys.map((k) => {
@@ -158,10 +190,10 @@ export default async function FinancePage({
                 {monthLabel(k)}
               </p>
               <p className="mt-2 text-xl font-bold tracking-tight">
-                <AmountText value={a?.total ?? 0} />
+                <AmountText value={invoiceEstimates.get(k) ?? 0} />
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {a?.count ?? 0} transaksi · {a?.students.size ?? 0} siswa
+                Pendapatan: <AmountText value={a?.total ?? 0} />
               </p>
             </Link>
           );

@@ -30,6 +30,21 @@ export function aggregateMonthly(payments: MonthlyPayment[]): Map<string, MonthA
   return map;
 }
 
+export interface MonthlyInvoice {
+  created_at: string;
+  amount: number | string;
+}
+
+/** Estimasi pendapatan per bulan: total nominal tagihan (sudah & belum bayar), dikunci "YYYY-MM" dari created_at. */
+export function aggregateInvoiceMonthly(invoices: MonthlyInvoice[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const inv of invoices) {
+    const key = inv.created_at.slice(0, 7);
+    map.set(key, (map.get(key) ?? 0) + Number(inv.amount));
+  }
+  return map;
+}
+
 /** "2026-09" → "September 2026" (lokal Indonesia). */
 export function monthLabel(monthKey: string): string {
   const [year, month] = monthKey.split("-").map(Number);

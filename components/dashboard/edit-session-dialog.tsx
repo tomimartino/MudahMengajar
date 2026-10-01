@@ -9,7 +9,6 @@ import {
   saveSessionForScheduleSchema,
   type SaveSessionForScheduleInput,
 } from "@/lib/validations/session";
-import { ATTENDANCE_STATUS } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +21,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 
 interface ScheduleInfo {
@@ -42,7 +34,6 @@ interface ScheduleInfo {
     homework: string | null;
     score: string | number | null;
     progress_notes: string | null;
-    attendance_status: string | null;
   } | null;
 }
 
@@ -61,7 +52,6 @@ export function EditSessionDialog({
   const form = useForm<SaveSessionForScheduleInput>({
     resolver: zodResolver(saveSessionForScheduleSchema) as unknown as Resolver<SaveSessionForScheduleInput>,
     defaultValues: {
-      attendance: schedule.session?.attendance_status ?? "hadir",
       material: schedule.session?.material ?? "",
       sub_material: schedule.session?.sub_material ?? "",
       learning_notes: schedule.session?.learning_notes ?? "",
@@ -94,30 +84,6 @@ export function EditSessionDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="attendance"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Kehadiran</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(ATTENDANCE_STATUS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="material"

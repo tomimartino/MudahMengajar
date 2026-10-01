@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aggregateInvoiceMonthly,
   aggregateMonthly,
   lastTwelveMonthKeys,
   monthDateRange,
@@ -42,6 +43,32 @@ describe("aggregateMonthly", () => {
       { payment_date: "2026-09-02", amount: "50000", student_id: "a" },
     ]);
     expect(map.get("2026-09")?.total).toBe(150000);
+  });
+});
+
+describe("aggregateInvoiceMonthly", () => {
+  it("menjumlahkan nominal tagihan per bulan dari created_at", () => {
+    const invoices = [
+      { created_at: "2026-09-01T08:00:00Z", amount: "200000" },
+      { created_at: "2026-09-15T08:00:00Z", amount: "150000" },
+      { created_at: "2026-10-02T08:00:00Z", amount: "300000" },
+    ];
+    const map = aggregateInvoiceMonthly(invoices);
+
+    expect(map.get("2026-09")).toBe(350000);
+    expect(map.get("2026-10")).toBe(300000);
+  });
+
+  it("menangani amount bertipe number maupun string", () => {
+    const map = aggregateInvoiceMonthly([
+      { created_at: "2026-09-01T08:00:00Z", amount: 100000 },
+      { created_at: "2026-09-02T08:00:00Z", amount: "50000" },
+    ]);
+    expect(map.get("2026-09")).toBe(150000);
+  });
+
+  it("mengembalikan map kosong tanpa tagihan", () => {
+    expect(aggregateInvoiceMonthly([]).size).toBe(0);
   });
 });
 
