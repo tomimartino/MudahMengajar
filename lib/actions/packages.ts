@@ -80,20 +80,32 @@ export async function cancelPackageAction(packageId: string): Promise<ActionResu
     if (invoiceError) return fail(actionError(invoiceError));
   }
 
-  // Jadwal mendatang siswa dihapus dari kalender; pertemuan yang sudah selesai tetap tercatat.
-  const { error: deleteError } = await supabase
-    .from("schedules")
-    .delete()
+  // Jadwal mendatang & status siswa hanya berubah bila tidak ada paket aktif lain.
+  const { data: otherActive } = await supabase
+    .from("student_packages")
+    .select("id")
     .eq("student_id", pkg.student_id)
-    .eq("status", "scheduled");
-  if (deleteError) return fail(actionError(deleteError));
+    .eq("status", "active")
+    .neq("id", packageId)
+    .limit(1)
+    .maybeSingle();
 
-  // Siswa dinonaktifkan saat paket dibatalkan.
-  const { error: statusError } = await supabase
-    .from("students")
-    .update({ status: "inactive" })
-    .eq("id", pkg.student_id);
-  if (statusError) return fail(actionError(statusError));
+  if (!otherActive) {
+    // Jadwal mendatang siswa dihapus dari kalender; pertemuan yang sudah selesai tetap tercatat.
+    const { error: deleteError } = await supabase
+      .from("schedules")
+      .delete()
+      .eq("student_id", pkg.student_id)
+      .eq("status", "scheduled");
+    if (deleteError) return fail(actionError(deleteError));
+
+    // Siswa dinonaktifkan saat paket terakhir yang aktif dibatalkan.
+    const { error: statusError } = await supabase
+      .from("students")
+      .update({ status: "inactive" })
+      .eq("id", pkg.student_id);
+    if (statusError) return fail(actionError(statusError));
+  }
 
   revalidatePath("/", "layout");
   return ok();

@@ -15,10 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AdjustPackageButton,
-  CancelPackageButton,
-} from "@/components/students/package-form";
+import { PackagePanel, type PackageRow } from "@/components/students/package-form";
 import { CreateInvoiceDialog } from "@/components/payments/invoice-create-dialog";
 import { todayInTz, toDateInput } from "@/lib/utils/date";
 import { LEARNING_MODES } from "@/lib/constants";
@@ -45,6 +42,15 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
   const lastSession = (sessions ?? [])[0]?.session_date ?? null;
   const unpaidTotal = (openInvoices ?? []).reduce((sum, i) => sum + Number(i.amount), 0);
   const remaining = activePkg ? activePkg.total_sessions - activePkg.sessions_used : null;
+
+  const pkgRows: PackageRow[] = (packages ?? []).map((p) => ({
+    id: p.id,
+    total_sessions: p.total_sessions,
+    price: Number(p.price),
+    start_date: p.start_date,
+    status: p.status,
+    sessions_used: p.sessions_used,
+  }));
 
   const stats = [
     { label: "Total pertemuan", value: total },
@@ -94,67 +100,7 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Paket Pertemuan</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {activePkg ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
-              <div>
-                <p className="font-semibold">
-                  {activePkg.total_sessions}x Pertemuan ·{" "}
-                  <AmountText value={activePkg.price} />
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Terpakai {activePkg.sessions_used} · Sisa{" "}
-                  <span className="font-semibold text-primary">
-                    {activePkg.total_sessions - activePkg.sessions_used}
-                  </span>
-                </p>
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted sm:w-48">
-                <div
-                  className="h-2 rounded-full bg-primary"
-                  style={{
-                    width: `${Math.min(100, (activePkg.sessions_used / activePkg.total_sessions) * 100)}%`,
-                  }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <AdjustPackageButton
-                  packageId={activePkg.id}
-                  currentUsed={activePkg.sessions_used}
-                  total={activePkg.total_sessions}
-                />
-                <CancelPackageButton packageId={activePkg.id} />
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Tidak ada paket aktif. Klik &quot;Tambah Paket&quot; di atas untuk membuat paket.
-            </p>
-          )}
-          {(packages?.length ?? 0) > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Riwayat paket</p>
-              <div className="space-y-2">
-                {packages!.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                    <span>
-                      {p.total_sessions}x · <AmountText value={p.price} /> · mulai{" "}
-                      <DateText value={p.start_date} tz={timezone} />
-                    </span>
-                    <StatusBadge tone={p.status === "active" ? "green" : p.status === "completed" ? "gray" : "red"}>
-                      {p.status === "active" ? "Aktif" : p.status === "completed" ? "Selesai" : "Dibatalkan"}
-                    </StatusBadge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <PackagePanel packages={pkgRows} timezone={timezone} />
 
       <Card>
         <CardHeader>
