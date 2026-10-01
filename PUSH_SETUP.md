@@ -229,10 +229,11 @@ Respons `{"error":"VAPID keys are not configured"}` → secret VAPID belum terpa
 Cron jalan tiap 5 menit. Setelah menunggu ±6 menit, cek di SQL Editor:
 
 ```sql
-select jobname, status, return_message, start_time
-from cron.job_run_details
-where jobname = 'send-push-notifications'
-order by start_time desc
+select j.jobname, d.status, d.return_message, d.start_time
+from cron.job_run_details d
+join cron.job j on j.jobid = d.jobid
+where j.jobname = 'send-push-notifications'
+order by d.start_time desc
 limit 5;
 ```
 

@@ -24,6 +24,7 @@ export const studentSchema = z
     monthly_fee: z.string().optional().default(""),
     monthly_due_day: z.string().optional().default(""),
     package_sessions: z.string().optional().default(""),
+    package_per_session_rate: z.string().optional().default(""),
     package_price: z.string().optional().default(""),
     package_start_date: z.string().optional().default(""),
     subject_ids: z.array(z.string().min(1)).min(1, "Pilih minimal satu mata pelajaran."),
@@ -54,11 +55,11 @@ export const studentSchema = z
       if (!Number.isInteger(sessions) || sessions < 1 || sessions > 200) {
         ctx.addIssue({ code: "custom", path: ["package_sessions"], message: "Jumlah pertemuan wajib diisi (1-200)." });
       }
-      if (parseAmount(v.package_price) <= 0) {
-        ctx.addIssue({ code: "custom", path: ["package_price"], message: "Harga paket wajib diisi." });
+      if (parseAmount(v.package_per_session_rate) <= 0) {
+        ctx.addIssue({ code: "custom", path: ["package_per_session_rate"], message: "Tarif per pertemuan wajib diisi." });
       }
       if (!dateString.safeParse(v.package_start_date).success) {
-        ctx.addIssue({ code: "custom", path: ["package_start_date"], message: "Tanggal mulai wajib diisi." });
+        ctx.addIssue({ code: "custom", path: ["package_start_date"], message: "Tenggat bayar wajib diisi." });
       }
     }
     // Jadwal opsional; tiap entri hari wajib punya jam mulai valid (diwajibkan schema di atas).

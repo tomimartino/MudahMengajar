@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BookOpen,
   CalendarDays,
+  DollarSign,
   UserPlus,
   Users,
   Wallet,
@@ -22,6 +22,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { DateText } from "@/components/shared/date-text";
+import { AmountText } from "@/components/shared/amount-text";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import {
   DashboardSchedule,
@@ -81,19 +82,6 @@ export default async function DashboardPage({
     today_schedules: [],
   }) as unknown as DashboardStats;
 
-  // Pertemuan bulan ini
-  const monthStart = toDateInput(fromZonedTime(startOfMonth(new Date()), tz));
-  const nextMonthStart = toDateInput(
-    fromZonedTime(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), tz)
-  );
-  const { count: monthSessions } = await supabase
-    .from("sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user!.id)
-    .eq("status", "completed")
-    .gte("session_date", monthStart)
-    .lt("session_date", nextMonthStart);
-
   // Jadwal untuk kalender (rentang sesuai view; terjadwal + selesai, dibatalkan disembunyikan)
   const d = parse(dateStr, "yyyy-MM-dd", new Date());
   let rangeStart: Date;
@@ -120,6 +108,18 @@ export default async function DashboardPage({
     .lte("start_at", fromZonedTime(rangeEnd, tz).toISOString())
     .order("start_at")
     .limit(1000);
+
+  // Siswa dengan paket aktif bertarif per pertemuan (untuk opsi pengurangan harga saat pembatalan)
+  const { data: activePackages } = await supabase
+    .from("student_packages")
+    .select("student_id, per_session_rate")
+    .eq("user_id", user!.id)
+    .eq("status", "active");
+  const packageStudentIds = new Set(
+    (activePackages ?? [])
+      .filter((p) => p.per_session_rate !== null)
+      .map((p) => p.student_id)
+  );
 
   // Materi/PR/catatan dari pertemuan yang sudah tercatat (untuk opsi Isi Materi)
   const scheduleIds = (schedules ?? []).map((s) => s.id);
@@ -183,6 +183,7 @@ export default async function DashboardPage({
       grade_level: student.grade_level,
       school_level: student.school_level,
       session: sessionsBySchedule.get(s.id) ?? null,
+      canReducePackagePrice: packageStudentIds.has(s.student_id),
     };
   });
 
@@ -216,21 +217,20 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <StatCard icon={CalendarDays} label="Jadwal Hari Ini" value={stats.schedules_today} />
         <StatCard icon={Users} label="Siswa Aktif" value={stats.active_students} href="/students" />
         <StatCard
           icon={Wallet}
           label="Belum Bayar"
           value={stats.open_invoices}
-          hint="Tagihan belum lunas"
           href="/students?tab=payments"
         />
         <StatCard
-          icon={BookOpen}
-          label="Pertemuan Bulan Ini"
-          value={monthSessions ?? 0}
-          href="/sessions"
+          icon={DollarSign}
+          label="Pendapatan Bulan Ini"
+          value={<AmountText value={stats.month_income} />}
+          href="/finance"
         />
       </div>
 
@@ -255,8 +255,4 @@ export default async function DashboardPage({
       </Card>
     </div>
   );
-}
-
-function toDateInput(d: Date): string {
-  return format(d, "yyyy-MM-dd");
 }

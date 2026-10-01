@@ -77,7 +77,7 @@ export async function AttendanceTabContent({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-end gap-3">
         <MonthFilter month={month} monthOptions={monthOptions} />
         <StudentFilter students={students ?? []} studentId={studentId} />
         <StatusFilter status={status} />

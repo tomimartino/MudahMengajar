@@ -33,7 +33,7 @@ export async function buildReport(
 ): Promise<ReportResult> {
   switch (type) {
     case "students":
-      return buildStudentsReport(supabase, userId);
+      return buildStudentsReport(supabase, userId, f);
     case "sessions":
       return buildSessionsReport(supabase, userId, f);
     case "attendance":
@@ -43,16 +43,41 @@ export async function buildReport(
   }
 }
 
-async function buildStudentsReport(supabase: Supabase, userId: string) {
+async function buildStudentsReport(supabase: Supabase, userId: string, f: ReportFilters) {
+  const studentsQuery = supabase
+    .from("students")
+    .select("*")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .order("full_name");
+  if (f.student) studentsQuery.eq("id", f.student);
+
   const [{ data: students }, { data: links }, { data: subjects }, { data: sessions }, { data: attendance }, { data: packages }, { data: openInvoices }] =
     await Promise.all([
-      supabase.from("students").select("*").eq("user_id", userId).is("deleted_at", null).order("full_name"),
+      studentsQuery,
       supabase.from("student_subjects").select("student_id, subject_id").eq("user_id", userId),
       supabase.from("subjects").select("id, name").eq("user_id", userId),
-      supabase.from("sessions").select("student_id").eq("user_id", userId).eq("status", "completed"),
-      supabase.from("attendance").select("student_id, status").eq("user_id", userId),
+      supabase
+        .from("sessions")
+        .select("student_id")
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .gte("session_date", f.from)
+        .lte("session_date", f.to),
+      supabase
+        .from("attendance")
+        .select("student_id, status, sessions(session_date)")
+        .eq("user_id", userId)
+        .gte("sessions.session_date", f.from)
+        .lte("sessions.session_date", f.to),
       supabase.from("student_packages").select("student_id, total_sessions, sessions_used").eq("user_id", userId).eq("status", "active"),
-      supabase.from("invoices").select("student_id, amount").eq("user_id", userId).in("status", ["unpaid", "partial"]),
+      supabase
+        .from("invoices")
+        .select("student_id, amount")
+        .eq("user_id", userId)
+        .in("status", ["unpaid", "partial"])
+        .gte("due_date", f.from)
+        .lte("due_date", f.to),
     ]);
 
   const subjectMap = new Map((subjects ?? []).map((s) => [s.id, s.name]));

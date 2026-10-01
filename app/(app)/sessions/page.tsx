@@ -104,7 +104,7 @@ export default async function SessionsPage({
     <div>
       <PageHeader title="Pertemuan" description="Catatan kegiatan belajar per pertemuan." />
       <SessionTabs current="sessions" />
-      <div className="mb-4 mt-4 flex flex-wrap gap-2">
+      <div className="mb-4 mt-4 flex flex-wrap items-end gap-3">
         <MonthFilter month={month} monthOptions={monthOptions} />
         <StudentFilter students={students ?? []} studentId={studentId} />
         {studentId && (

@@ -8,12 +8,15 @@ import { actionError, fail, ok } from "@/lib/actions/helpers";
 import { switchScheduleSchema } from "@/lib/validations/session";
 import type { ActionResult } from "@/lib/actions/helpers";
 
-export async function cancelScheduleAction(scheduleId: string): Promise<ActionResult> {
+export async function cancelScheduleAction(
+  scheduleId: string,
+  reducePackagePrice = false
+): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("schedules")
-    .update({ status: "cancelled" })
-    .eq("id", scheduleId);
+  const { error } = await supabase.rpc("cancel_schedule", {
+    p_schedule_id: scheduleId,
+    p_reduce_price: reducePackagePrice,
+  });
   if (error) return fail(actionError(error));
 
   revalidatePath("/", "layout");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   createPackageAction,
 } from "@/lib/actions/packages";
 import { packageSchema, type PackageInput } from "@/lib/validations/package";
+import { formatRupiah, parseAmount } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,10 +43,27 @@ export function CreatePackageButton({ studentId }: { studentId: string }) {
     defaultValues: {
       student_id: studentId,
       total_sessions: undefined as unknown as number,
+      per_session_rate: "",
       price: "",
       start_date: "",
     },
   });
+
+  const totalSessions = form.watch("total_sessions");
+  const perSessionRate = form.watch("per_session_rate");
+
+  // Harga paket otomatis = tarif per pertemuan × jumlah pertemuan.
+  useEffect(() => {
+    const sessions = Number(totalSessions);
+    const rate = parseAmount(perSessionRate);
+    const total =
+      Number.isInteger(sessions) && sessions > 0 && rate > 0 ? sessions * rate : 0;
+    form.setValue(
+      "price",
+      total > 0 ? formatRupiah(total, { withSymbol: false }) : "",
+      { shouldValidate: true }
+    );
+  }, [totalSessions, perSessionRate, form]);
 
   async function onSubmit(values: PackageInput) {
     setPending(true);
@@ -91,12 +109,31 @@ export function CreatePackageButton({ studentId }: { studentId: string }) {
             />
             <FormField
               control={form.control}
+              name="per_session_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tarif per pertemuan</FormLabel>
+                  <FormControl>
+                    <Input placeholder="100.000" inputMode="numeric" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Harga paket (Rp)</FormLabel>
                   <FormControl>
-                    <Input placeholder="1.200.000" inputMode="numeric" {...field} />
+                    <Input
+                      placeholder="1.200.000"
+                      inputMode="numeric"
+                      readOnly
+                      className="bg-muted"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,7 +144,7 @@ export function CreatePackageButton({ studentId }: { studentId: string }) {
               name="start_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tanggal mulai</FormLabel>
+                  <FormLabel>Tenggat bayar</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>

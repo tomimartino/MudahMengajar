@@ -10,33 +10,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function MonthFilter({
-  options,
+export function YearFilter({
+  year,
+  years,
 }: {
-  options: { value: string; label: string }[];
+  year: string;
+  years: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const current = searchParams.get("month") ?? options[0]?.value ?? "";
 
   function apply(value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("month", value);
-    else params.delete("month");
+    params.set("year", value);
+    params.delete("month");
     router.push(`/finance?${params.toString()}`);
   }
 
   return (
     <div>
-      <Label className="mb-1 block text-xs">Bulan</Label>
-      <Select value={current} onValueChange={apply}>
-        <SelectTrigger className="w-44">
+      <Label className="mb-1 block text-xs">Tahun</Label>
+      <Select value={year} onValueChange={apply}>
+        <SelectTrigger className="w-28">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
+          {years.map((y) => (
+            <SelectItem key={y} value={y}>
+              {y}
             </SelectItem>
           ))}
         </SelectContent>

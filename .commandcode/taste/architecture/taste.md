@@ -11,3 +11,4 @@
 - SQL migrations should be idempotent (safe to re-run): `create table if not exists`, `add column if not exists`, and `drop policy/trigger if exists` before `create`. Confidence: 0.8
 - Prefers public-facing links (profile share, auth email redirects) to resolve from the runtime request origin rather than a hardcoded localhost fallback. Confidence: 0.7
 - Public-facing pages (e.g., the shareable teacher profile at /guru/[id]) must be viewable without any login so parents/guardians (wali murid) can open share links directly; only dashboard/account areas require authentication. Confidence: 0.85
+- Prefers non-destructive updates: when an edit changes unrelated fields, leave related records untouched — only delete-and-regenerate related rows (e.g., a student's upcoming schedule) when their pattern actually changed, not on every save. Confidence: 0.7

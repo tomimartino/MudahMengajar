@@ -74,6 +74,7 @@ async function createBillingInvoice(
     const { data, error } = await supabase.rpc("create_package", {
       p_student_id: studentId,
       p_total_sessions: Number(d.package_sessions),
+      p_per_session_rate: parseAmount(d.package_per_session_rate),
       p_price: parseAmount(d.package_price),
       p_start_date: d.package_start_date,
     });
@@ -259,6 +260,37 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
   }
 }
 
+/** Pola jadwal mendatang siswa: hari → jam mulai, tanggal mulai, dan lokasi. */
+async function upcomingScheduleSnapshot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  studentId: string,
+  tz: string
+): Promise<{
+  byDay: Map<number, string>;
+  firstDate: string | null;
+  location: string | null;
+}> {
+  const { data: scheds } = await supabase
+    .from("schedules")
+    .select("start_at, location")
+    .eq("user_id", userId)
+    .eq("student_id", studentId)
+    .eq("status", "scheduled")
+    .order("start_at");
+  const byDay = new Map<number, string>();
+  let firstDate: string | null = null;
+  let location: string | null = null;
+  for (const s of scheds ?? []) {
+    const local = toZonedTime(s.start_at, tz);
+    const day = getISODay(local);
+    if (!byDay.has(day)) byDay.set(day, format(local, "HH:mm"));
+    if (firstDate === null) firstDate = format(local, "yyyy-MM-dd");
+    if (location === null) location = s.location;
+  }
+  return { byDay, firstDate, location };
+}
+
 export async function updateStudentAction(
   studentId: string,
   input: unknown
@@ -301,6 +333,39 @@ export async function updateStudentAction(
     if (error) throw error;
 
     await replaceSubjects(supabase, user.id, studentId, d.subject_ids);
+
+    // Jadwal: ganti jadwal mendatang hanya jika pola hari/jam, tanggal mulai, atau lokasi berubah.
+    if (d.schedule_times.length > 0) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("timezone")
+        .eq("id", user.id)
+        .single();
+      const tz = profile?.timezone ?? "Asia/Jakarta";
+      const snap = await upcomingScheduleSnapshot(supabase, user.id, studentId, tz);
+
+      const sameTimes =
+        snap.byDay.size === d.schedule_times.length &&
+        d.schedule_times.every((t) => snap.byDay.get(t.day) === t.start_time);
+      const sameStart =
+        !d.schedule_start_date ||
+        snap.firstDate === null ||
+        snap.firstDate === d.schedule_start_date;
+      const sameLocation = clean(d.schedule_location) === snap.location;
+
+      if (!(sameTimes && sameStart && sameLocation)) {
+        const hasValidCount =
+          d.billing_type !== "package" || Number(d.package_sessions) > 0;
+        if (hasValidCount) {
+          await supabase
+            .from("schedules")
+            .delete()
+            .eq("student_id", studentId)
+            .eq("status", "scheduled");
+          await createInitialSchedule(supabase, user.id, studentId, d);
+        }
+      }
+    }
 
     revalidatePath("/", "layout");
     return ok();

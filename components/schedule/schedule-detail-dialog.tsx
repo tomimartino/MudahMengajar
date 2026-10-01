@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LEARNING_MODES } from "@/lib/constants";
 
 export interface ScheduleItem {
@@ -30,6 +31,7 @@ export interface ScheduleItem {
   student_id: string;
   student_name: string;
   subject_name: string;
+  canReducePackagePrice: boolean;
 }
 
 export function ScheduleDetailDialog({
@@ -47,16 +49,21 @@ export function ScheduleDetailDialog({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [reducePrice, setReducePrice] = useState(false);
 
   async function handleCancel() {
     setPending(true);
-    const result = await cancelScheduleAction(schedule.id);
+    const result = await cancelScheduleAction(schedule.id, reducePrice);
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Jadwal dibatalkan.");
+    toast.success(
+      reducePrice
+        ? "Jadwal dibatalkan dan harga paket dikurangi."
+        : "Jadwal dibatalkan."
+    );
     onOpenChange(false);
     router.refresh();
   }
@@ -101,6 +108,15 @@ export function ScheduleDetailDialog({
             </div>
           )}
           {schedule.notes && <p className="text-muted-foreground">{schedule.notes}</p>}
+          {schedule.status === "scheduled" && schedule.canReducePackagePrice && (
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={reducePrice}
+                onCheckedChange={(v) => setReducePrice(v === true)}
+              />
+              Kurangi harga paket sebesar tarif per pertemuan
+            </label>
+          )}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {schedule.status === "completed" && onEdit && (

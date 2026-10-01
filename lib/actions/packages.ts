@@ -17,6 +17,7 @@ export async function createPackageAction(input: unknown): Promise<ActionResult>
     const { error } = await supabase.rpc("create_package", {
       p_student_id: d.student_id,
       p_total_sessions: d.total_sessions,
+      p_per_session_rate: parseAmount(d.per_session_rate),
       p_price: parseAmount(d.price),
       p_start_date: d.start_date,
     });

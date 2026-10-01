@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -16,9 +16,10 @@ import {
   SCHOOL_LEVELS,
   type SchoolLevel,
 } from "@/lib/constants";
-import { formatRupiah } from "@/lib/utils/currency";
+import { formatRupiah, parseAmount } from "@/lib/utils/currency";
 import { toDateInput } from "@/lib/utils/date";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -57,6 +58,13 @@ export interface StudentFormInitial {
   per_session_rate?: string | null;
   monthly_fee?: string | null;
   monthly_due_day?: number | null;
+  package_sessions?: number | null;
+  package_per_session_rate?: string | null;
+  package_price?: string | null;
+  package_start_date?: string;
+  schedule_times?: { day: number; start_time: string }[];
+  schedule_location?: string;
+  schedule_start_date?: string;
   subject_ids?: string[];
   status?: string;
 }
@@ -139,14 +147,19 @@ export function StudentForm({
         ? formatRupiah(initial.monthly_fee, { withSymbol: false })
         : "",
       monthly_due_day: initial?.monthly_due_day ? String(initial.monthly_due_day) : "",
-      package_sessions: "",
-      package_price: "",
-      package_start_date: toDateInput(new Date()),
+      package_sessions: initial?.package_sessions ? String(initial.package_sessions) : "",
+      package_per_session_rate: initial?.package_per_session_rate
+        ? formatRupiah(initial.package_per_session_rate, { withSymbol: false })
+        : "",
+      package_price: initial?.package_price
+        ? formatRupiah(initial.package_price, { withSymbol: false })
+        : "",
+      package_start_date: initial?.package_start_date ?? toDateInput(new Date()),
       subject_ids: initial?.subject_ids ?? [],
       status: (initial?.status as "active" | "inactive") ?? "active",
-      schedule_times: [],
-      schedule_location: "",
-      schedule_start_date: toDateInput(new Date()),
+      schedule_times: initial?.schedule_times ?? [],
+      schedule_location: initial?.schedule_location ?? "",
+      schedule_start_date: initial?.schedule_start_date ?? toDateInput(new Date()),
     },
   });
 
@@ -154,6 +167,49 @@ export function StudentForm({
   const schoolLevel = form.watch("school_level") as SchoolLevel;
   const subjectIds = form.watch("subject_ids");
   const scheduleTimes = form.watch("schedule_times") ?? [];
+  const packageSessions = form.watch("package_sessions");
+  const packageRate = form.watch("package_per_session_rate");
+
+  // Jam mulai berbeda tiap hari (checklist) vs satu jam untuk semua hari.
+  const initialScheduleTimes = initial?.schedule_times ?? [];
+  const [varyTimes, setVaryTimes] = useState(
+    () => new Set(initialScheduleTimes.map((t) => t.start_time)).size > 1
+  );
+  const [singleTime, setSingleTime] = useState(
+    () => initialScheduleTimes[0]?.start_time ?? ""
+  );
+  const scheduleDaysKey = scheduleTimes.map((t) => t.day).join(",");
+
+  useEffect(() => {
+    if (varyTimes) return;
+    form.setValue(
+      "schedule_times",
+      scheduleDaysKey
+        ? scheduleDaysKey.split(",").map((day) => ({ day: Number(day), start_time: singleTime }))
+        : [],
+      { shouldValidate: true }
+    );
+  }, [varyTimes, singleTime, scheduleDaysKey, form]);
+
+  function toggleVaryTimes(checked: boolean) {
+    if (!checked && scheduleTimes.length > 0) {
+      setSingleTime(scheduleTimes[0].start_time);
+    }
+    setVaryTimes(checked);
+  }
+
+  // Harga paket otomatis = tarif per pertemuan × jumlah pertemuan.
+  useEffect(() => {
+    const sessions = Number(packageSessions);
+    const rate = parseAmount(packageRate);
+    const total =
+      Number.isInteger(sessions) && sessions > 0 && rate > 0 ? sessions * rate : 0;
+    form.setValue(
+      "package_price",
+      total > 0 ? formatRupiah(total, { withSymbol: false }) : "",
+      { shouldValidate: true }
+    );
+  }, [packageSessions, packageRate, form]);
 
   function toggleScheduleDay(day: number) {
     const exists = scheduleTimes.some((t) => t.day === day);
@@ -499,7 +555,7 @@ export function StudentForm({
           />
 
           {billingType === "package" && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="package_sessions"
@@ -515,12 +571,12 @@ export function StudentForm({
               />
               <FormField
                 control={form.control}
-                name="package_price"
+                name="package_per_session_rate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Harga paket *</FormLabel>
+                    <FormLabel>Tarif per pertemuan *</FormLabel>
                     <FormControl>
-                      <Input placeholder="1.200.000" inputMode="numeric" {...field} />
+                      <Input placeholder="100.000" inputMode="numeric" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -531,9 +587,28 @@ export function StudentForm({
                 name="package_start_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tanggal mulai *</FormLabel>
+                    <FormLabel>Tenggat bayar *</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="package_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Harga paket</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="1.200.000"
+                        inputMode="numeric"
+                        readOnly
+                        className="bg-muted"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -574,109 +649,129 @@ export function StudentForm({
           )}
         </section>
 
-        {!isEdit && (
-          <>
-            <section className="rounded-xl border bg-card p-5">
-              <h2 className="mb-1 text-sm font-semibold text-muted-foreground">JADWAL</h2>
-              <p className="mb-4 text-xs text-muted-foreground">
-                Pilih hari dan jam mengajar — setiap hari bisa memiliki jam mulai berbeda
-                (mis. Rabu 14:00, Kamis 12:00). Paket → jadwal dibuat sebanyak jumlah
-                pertemuan paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal
-                jatuh tempo. Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat
-                otomatis berstatus Selesai.
-              </p>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <FormLabel>Hari mengajar</FormLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {DAY_NAMES.map((name, i) => {
-                      const day = i + 1;
-                      const selected = scheduleTimes.some((t) => t.day === day);
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => toggleScheduleDay(day)}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                            selected
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border hover:border-primary/50 hover:text-primary"
-                          )}
-                        >
-                          {name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {scheduleTimes.map((t) => {
-                    const entryIndex = scheduleTimes.findIndex((x) => x.day === t.day);
-                    const entryError = form.formState.errors.schedule_times?.[entryIndex]
-                      ?.start_time;
-                    return (
-                      <div key={t.day} className="flex items-center gap-3">
-                        <span className="w-20 text-sm font-medium">{DAY_NAMES[t.day - 1]}</span>
-                        <Input
-                          type="time"
-                          value={t.start_time}
-                          onChange={(e) => updateScheduleTime(t.day, e.target.value)}
-                          className="w-36"
-                          aria-label={`Jam mulai hari ${DAY_NAMES[t.day - 1]}`}
-                        />
-                        {entryError && (
-                          <p className="text-sm font-medium text-destructive">
-                            {entryError.message}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {form.formState.errors.schedule_times &&
-                    !Array.isArray(form.formState.errors.schedule_times) &&
-                    form.formState.errors.schedule_times.message && (
-                      <p className="text-sm font-medium text-destructive">
-                        {form.formState.errors.schedule_times.message}
-                      </p>
-                    )}
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="schedule_start_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal mulai jadwal</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+        <section className="rounded-xl border bg-card p-5">
+          <h2 className="mb-1 text-sm font-semibold text-muted-foreground">JADWAL</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Pilih hari dan jam mengajar. Paket → jadwal dibuat sebanyak jumlah pertemuan
+            paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal jatuh tempo.
+            Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat otomatis
+            berstatus Selesai.
+          </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <FormLabel>Hari mengajar</FormLabel>
+              <div className="flex flex-wrap gap-2">
+                {DAY_NAMES.map((name, i) => {
+                  const day = i + 1;
+                  const selected = scheduleTimes.some((t) => t.day === day);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleScheduleDay(day)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary/50 hover:text-primary"
+                      )}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm">
+                <Checkbox
+                  checked={varyTimes}
+                  onCheckedChange={(v) => toggleVaryTimes(v === true)}
+                />
+                Jam mulai berbeda untuk tiap hari
+              </label>
+              {varyTimes ? (
+                scheduleTimes.map((t) => {
+                  const entryIndex = scheduleTimes.findIndex((x) => x.day === t.day);
+                  const entryError = form.formState.errors.schedule_times?.[entryIndex]
+                    ?.start_time;
+                  return (
+                    <div key={t.day} className="flex items-center gap-3">
+                      <span className="w-20 text-sm font-medium">{DAY_NAMES[t.day - 1]}</span>
+                      <Input
+                        type="time"
+                        value={t.start_time}
+                        onChange={(e) => updateScheduleTime(t.day, e.target.value)}
+                        className="w-36"
+                        aria-label={`Jam mulai hari ${DAY_NAMES[t.day - 1]}`}
+                      />
+                      {entryError && (
+                        <p className="text-sm font-medium text-destructive">
+                          {entryError.message}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="w-20 text-sm font-medium">Jam mulai</span>
+                  <Input
+                    type="time"
+                    value={singleTime}
+                    onChange={(e) => setSingleTime(e.target.value)}
+                    className="w-36"
+                    aria-label="Jam mulai"
                   />
-                  <FormField
-                    control={form.control}
-                    name="schedule_location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lokasi / link meeting</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Rumah siswa / https://zoom.us/j/..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {form.formState.errors.schedule_times?.[0]?.start_time && (
+                    <p className="text-sm font-medium text-destructive">
+                      {form.formState.errors.schedule_times[0].start_time.message}
+                    </p>
+                  )}
                 </div>
-                {typeof defaultDurationMinutes === "number" && (
-                  <p className="text-xs text-muted-foreground">
-                    Durasi pertemuan {defaultDurationMinutes} menit (diatur di Pengaturan).
+              )}
+              {form.formState.errors.schedule_times &&
+                !Array.isArray(form.formState.errors.schedule_times) &&
+                form.formState.errors.schedule_times.message && (
+                  <p className="text-sm font-medium text-destructive">
+                    {form.formState.errors.schedule_times.message}
                   </p>
                 )}
-              </div>
-            </section>
-          </>
-        )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="schedule_start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tanggal mulai jadwal</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="schedule_location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lokasi / link meeting</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rumah siswa / https://zoom.us/j/..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            {typeof defaultDurationMinutes === "number" && (
+              <p className="text-xs text-muted-foreground">
+                Durasi pertemuan {defaultDurationMinutes} menit (diatur di Pengaturan).
+              </p>
+            )}
+          </div>
+        </section>
 
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">CATATAN</h2>

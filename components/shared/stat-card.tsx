@@ -19,7 +19,7 @@ export function StatCard({
   className?: string;
 }) {
   const content = (
-    <Card className={cn("transition-shadow hover:shadow-md", href && "cursor-pointer", className)}>
+    <Card className={cn("h-full transition-shadow hover:shadow-md", href && "cursor-pointer", className)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -35,5 +35,11 @@ export function StatCard({
     </Card>
   );
 
-  return href ? <Link href={href}>{content}</Link> : content;
+  return href ? (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
+  ) : (
+    content
+  );
 }

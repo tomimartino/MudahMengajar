@@ -33,8 +33,6 @@ export const NAV_ITEMS = [
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
   { label: "Laporan", href: "/reports", icon: "FileBarChart" },
   { label: "Keuangan", href: "/finance", icon: "Wallet" },
-  { label: "Profil", href: "/profile", icon: "BadgeCheck" },
-  { label: "Pengaturan", href: "/settings", icon: "Settings" },
 ] as const;
 
 export const MOBILE_NAV_ITEMS = [
@@ -134,6 +132,21 @@ export const TIMEZONES = [
 ] as const;
 
 export const DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+export const MONTH_NAMES = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 /** Teks yang wajib diketik pengguna untuk mengonfirmasi penghapusan murid. */
 export const DELETE_STUDENT_CONFIRMATION = "HAPUS MURID";

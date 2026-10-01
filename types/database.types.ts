@@ -297,6 +297,7 @@ export type Database = {
           total_sessions: number;
           sessions_used: number;
           price: string;
+          per_session_rate: string | null;
           start_date: string;
           status: string;
           created_at: string;
@@ -310,6 +311,7 @@ export type Database = {
           total_sessions: number;
           sessions_used?: number;
           price: string;
+          per_session_rate?: string | null;
           start_date: string;
           status?: string;
           created_at?: string;
@@ -320,6 +322,7 @@ export type Database = {
           total_sessions: number;
           sessions_used: number;
           price: string;
+          per_session_rate: string | null;
           start_date: string;
           status: string;
           updated_at: string;
@@ -676,8 +679,16 @@ export type Database = {
           p_total_sessions: number;
           p_price: number;
           p_start_date: string;
+          p_per_session_rate?: number | null;
         };
         Returns: Json;
+      };
+      cancel_schedule: {
+        Args: {
+          p_schedule_id: string;
+          p_reduce_price?: boolean;
+        };
+        Returns: undefined;
       };
       create_invoice: {
         Args: {

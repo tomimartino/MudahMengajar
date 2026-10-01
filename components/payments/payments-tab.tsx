@@ -1,14 +1,11 @@
-import Link from "next/link";
-import { Eye, ReceiptText, Wallet } from "lucide-react";
+import { ReceiptText, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InvoiceStatusBadge } from "@/components/shared/badges";
-import { RecordPaymentButton } from "@/components/payments/payment-form";
-import { InvoiceDeleteButton } from "@/components/payments/invoice-delete-button";
-import { GenerateMonthlyButton, WhatsAppBillButton } from "@/components/payments/generate-monthly-button";
+import { InvoiceRowActions } from "@/components/payments/invoice-row-actions";
+import { GenerateMonthlyButton } from "@/components/payments/generate-monthly-button";
 import {
   Table,
   TableBody,
@@ -18,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { todayInTz, toDateInput } from "@/lib/utils/date";
-import { invoiceReminderMessage, normalizePhone } from "@/lib/utils/whatsapp";
 
 const PAYMENT_METHODS: Record<string, string> = {
   cash: "Cash",
@@ -47,7 +43,7 @@ export async function PaymentsTabContent() {
   const tz = profile?.timezone ?? "Asia/Jakarta";
   const today = toDateInput(todayInTz(tz), tz);
 
-  const [{ data: students }, { data: invoices }, { data: payments }, { data: invoicePayments }, { data: settings }] =
+  const [{ data: students }, { data: invoices }, { data: payments }, { data: invoicePayments }] =
     await Promise.all([
       supabase
         .from("students")
@@ -57,7 +53,7 @@ export async function PaymentsTabContent() {
         .order("full_name"),
       supabase
         .from("invoices")
-        .select("*, students(full_name, parents(name, whatsapp))")
+        .select("*, students(full_name)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(200),
@@ -73,11 +69,6 @@ export async function PaymentsTabContent() {
         .eq("user_id", user!.id)
         .not("invoice_id", "is", null)
         .limit(2000),
-      supabase
-        .from("settings")
-        .select("message_template_invoice")
-        .eq("user_id", user!.id)
-        .single(),
     ]);
 
   const paidByInvoice = new Map<string, number>();
@@ -89,13 +80,10 @@ export async function PaymentsTabContent() {
   const invoiceList = (invoices ?? []).map((i) => {
     const student = i.students as unknown as {
       full_name: string;
-      parents: { name: string; whatsapp: string } | null;
     };
     return {
       ...i,
       student_name: student.full_name,
-      parent_name: student.parents?.name ?? null,
-      parent_whatsapp: student.parents?.whatsapp ?? null,
       paid_amount: paidByInvoice.get(i.id) ?? 0,
     };
   });
@@ -146,7 +134,7 @@ export async function PaymentsTabContent() {
                 <TableHead>Dibayar</TableHead>
                 <TableHead>Jatuh Tempo</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-32">Aksi</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -168,40 +156,14 @@ export async function PaymentsTabContent() {
                     <InvoiceStatusBadge status={i.status} dueDate={i.due_date} today={today} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <Button asChild variant="ghost" size="icon-sm" aria-label="Lihat tagihan">
-                        <Link href={`/invoices/${i.id}`}>
-                          <Eye className="size-4" />
-                        </Link>
-                      </Button>
-                      {i.status !== "paid" && (
-                        <RecordPaymentButton
-                          students={students ?? []}
-                          invoices={invoiceOptions}
-                          studentId={i.student_id}
-                          invoiceId={i.id}
-                        />
-                      )}
-                      {i.status !== "paid" && i.parent_whatsapp && (
-                        <WhatsAppBillButton
-                          phone={normalizePhone(i.parent_whatsapp)}
-                          message={invoiceReminderMessage(
-                            {
-                              parentName: i.parent_name ?? "Wali",
-                              studentName: i.student_name,
-                              periodLabel: i.period_label ?? "berjalan",
-                              amount: Number(i.amount) - i.paid_amount,
-                              dueDate: i.due_date ?? new Date(),
-                            },
-                            tz,
-                            settings?.message_template_invoice
-                          )}
-                        />
-                      )}
-                      {i.status === "unpaid" && i.paid_amount === 0 && (
-                        <InvoiceDeleteButton invoiceId={i.id} />
-                      )}
-                    </div>
+                    <InvoiceRowActions
+                      invoiceId={i.id}
+                      studentId={i.student_id}
+                      students={students ?? []}
+                      invoices={invoiceOptions}
+                      canPay={i.status !== "paid"}
+                      canDelete={i.status === "unpaid" && i.paid_amount === 0}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

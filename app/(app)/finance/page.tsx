@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ReceiptText, Users, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
-import { MonthFilter } from "@/components/finance/month-filter";
+import { YearFilter } from "@/components/finance/year-filter";
 import { StatCard } from "@/components/shared/stat-card";
 import { AmountText } from "@/components/shared/amount-text";
 import { DateText } from "@/components/shared/date-text";
@@ -19,12 +19,10 @@ import {
 import {
   MONTH_KEY_RE,
   aggregateMonthly,
-  lastTwelveMonthKeys,
-  monthDateRange,
   monthLabel,
 } from "@/lib/finance/queries";
 import { PAYMENT_METHODS, PAYMENT_TYPES } from "@/lib/constants";
-import { buildMonthOptions, toDateInput, todayInTz } from "@/lib/utils/date";
+import { toDateInput, todayInTz } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Keuangan" };
@@ -57,21 +55,51 @@ export default async function FinancePage({
     .single();
   const tz = profile?.timezone ?? "Asia/Jakarta";
   const todayMonth = toDateInput(todayInTz(tz), tz).slice(0, 7);
+  const nowYear = todayMonth.slice(0, 4);
+
+  // Rentang tahun yang tersedia berdasarkan data pembayaran (selalu memuat tahun berjalan).
+  const [{ data: oldestPayment }, { data: newestPayment }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("payment_date")
+      .eq("user_id", user!.id)
+      .order("payment_date")
+      .limit(1),
+    supabase
+      .from("payments")
+      .select("payment_date")
+      .eq("user_id", user!.id)
+      .order("payment_date", { ascending: false })
+      .limit(1),
+  ]);
+  const minYear = Math.min(
+    Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
+    Number(nowYear)
+  );
+  const maxYear = Math.max(
+    Number((newestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
+    Number(nowYear)
+  );
+  const years: string[] = [];
+  for (let y = maxYear; y >= minYear; y--) years.push(String(y));
+
+  const rawYear = typeof sp.year === "string" && /^\d{4}$/.test(sp.year) ? sp.year : nowYear;
+  const year = years.includes(rawYear) ? rawYear : nowYear;
 
   const rawMonth = typeof sp.month === "string" ? sp.month : "";
-  const monthNum = Number(rawMonth.slice(5, 7));
   const month =
-    MONTH_KEY_RE.test(rawMonth) && monthNum >= 1 && monthNum <= 12 ? rawMonth : todayMonth;
-
-  const range = monthDateRange(month);
-  const oldest = `${lastTwelveMonthKeys(month)[11]}-01`;
+    MONTH_KEY_RE.test(rawMonth) && rawMonth.startsWith(year)
+      ? rawMonth
+      : year === nowYear
+        ? todayMonth
+        : `${year}-01`;
 
   const { data: payments } = await supabase
     .from("payments")
     .select("payment_date, amount, student_id, type, method, notes, students(full_name)")
     .eq("user_id", user!.id)
-    .gte("payment_date", oldest)
-    .lte("payment_date", range.end)
+    .gte("payment_date", `${year}-01-01`)
+    .lte("payment_date", `${year}-12-31`)
     .order("payment_date")
     .limit(2000);
 
@@ -84,8 +112,10 @@ export default async function FinancePage({
   };
   const selectedPayments = rows.filter((p) => p.payment_date.startsWith(month));
   const label = monthLabel(month);
-  const monthKeys = lastTwelveMonthKeys(month);
-  const monthOptions = buildMonthOptions(month, todayMonth);
+  const monthKeys = Array.from(
+    { length: 12 },
+    (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`
+  );
 
   return (
     <div>
@@ -95,7 +125,7 @@ export default async function FinancePage({
       />
 
       <div className="mb-4">
-        <MonthFilter options={monthOptions} />
+        <YearFilter year={year} years={years} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -118,7 +148,7 @@ export default async function FinancePage({
           return (
             <Link
               key={k}
-              href={`/finance?month=${k}`}
+              href={`/finance?year=${year}&month=${k}`}
               className={cn(
                 "rounded-xl border bg-card p-4 transition-colors hover:border-primary/50",
                 isCurrent && "border-primary bg-primary/5"
