@@ -19,11 +19,12 @@ const ACTIONS = [
 
 export function QuickActions() {
   return (
-    <section aria-label="Aksi cepat" className="space-y-4">
+    <section data-ui="quick-actions" aria-label="Aksi cepat" className="space-y-4">
         <h2 className="text-lg font-bold tracking-tight">Aksi cepat</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {ACTIONS.map((a) => (
             <Link
+              data-ui="quick-action"
               key={a.label}
               href={a.href}
               className="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-5 shadow-soft transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-ring"

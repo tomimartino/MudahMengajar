@@ -42,6 +42,7 @@ export function Sidebar({
 
   return (
     <aside
+      data-ui="sidebar"
       className={cn(
         "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-sidebar-border/60 bg-sidebar transition-all duration-200 print:hidden md:flex",
         collapsed ? "w-20" : "w-64"

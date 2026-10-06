@@ -1,13 +1,23 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Nunito, Pixelify_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
+import "./appearance.css";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
+});
+
+const playfulFont = Nunito({ variable: "--font-playful", subsets: ["latin"], preload: false });
+const pixelFont = Pixelify_Sans({ variable: "--font-pixel", subsets: ["latin"], preload: false });
+const terminalFont = IBM_Plex_Mono({
+  variable: "--font-terminal",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -26,7 +36,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${jakartaSans.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="id" className={`${jakartaSans.variable} ${playfulFont.variable} ${pixelFont.variable} ${terminalFont.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <TooltipProvider delayDuration={200}>{children}</TooltipProvider>

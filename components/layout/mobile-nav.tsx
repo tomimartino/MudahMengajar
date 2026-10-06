@@ -37,7 +37,7 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav aria-label="Navigasi utama" className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-border/70 bg-card/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-soft backdrop-blur md:hidden print:hidden">
+    <nav data-ui="mobile-nav" aria-label="Navigasi utama" className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-border/70 bg-card/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-soft backdrop-blur md:hidden print:hidden">
       <div className="grid grid-cols-6 gap-0.5">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];

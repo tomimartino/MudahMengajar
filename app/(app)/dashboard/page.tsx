@@ -179,8 +179,8 @@ export default async function DashboardPage({
   const firstName = (profile?.full_name ?? "Guru").split(" ")[0] || "Guru";
 
   return (
-    <div className="space-y-7">
-      <div className="flex items-center justify-between gap-4 overflow-hidden rounded-3xl bg-mint px-6 py-7 sm:px-8 sm:py-8">
+    <div data-ui="dashboard" className="space-y-7">
+      <div data-ui="dashboard-hero" className="flex items-center justify-between gap-4 overflow-hidden rounded-3xl bg-mint px-6 py-7 sm:px-8 sm:py-8">
         <PageHeader
           className="mb-0"
           title={`Selamat datang, ${firstName}`}
@@ -206,7 +206,7 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div data-ui="dashboard-stats" className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard icon={CalendarDays} label="Jadwal Hari Ini" value={stats.schedules_today} />
         <StatCard icon={Users} label="Siswa Aktif" value={stats.active_students} href="/students" tone="sky" />
         <StatCard
@@ -225,25 +225,26 @@ export default async function DashboardPage({
         />
       </div>
 
-      <QuickActions />
-
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center gap-3 text-lg">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-mint text-primary"><CalendarDays className="size-5" /></span> Jadwal
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DashboardSchedule
-            schedules={items}
-            date={dateStr}
-            view={view}
-            timezone={tz}
-            defaultDuration={settings?.default_duration_minutes ?? 90}
-            basePath="/dashboard"
-          />
-        </CardContent>
-      </Card>
+      <div data-ui="dashboard-panels" className="space-y-7">
+        <QuickActions />
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-mint text-primary"><CalendarDays className="size-5" /></span> Jadwal
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DashboardSchedule
+              schedules={items}
+              date={dateStr}
+              view={view}
+              timezone={tz}
+              defaultDuration={settings?.default_duration_minutes ?? 90}
+              basePath="/dashboard"
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

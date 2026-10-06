@@ -17,7 +17,7 @@ export function Topbar({
   unreadCount: number;
 }) {
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-4 backdrop-blur sm:px-6 md:px-8 lg:px-10">
+    <header data-ui="topbar" className="sticky top-0 z-30 flex h-20 items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-4 backdrop-blur sm:px-6 md:px-8 lg:px-10">
       <div className="flex min-w-0 items-center gap-3">
         <span className="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary shadow-soft sm:flex" aria-hidden="true">
           <CalendarDays className="size-4" />
