@@ -7,6 +7,7 @@ import { BillingSettingsForm } from "@/components/settings/billing-settings-form
 import { ChatTemplatesForm } from "@/components/settings/chat-templates-form";
 import { LogoutButton } from "@/components/settings/logout-button";
 import { PushSettings } from "@/components/settings/push-settings";
+import { ThemeSettings } from "@/components/settings/theme-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -28,9 +29,18 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Pengaturan"
-        description="Atur format chat, kebijakan paket, dan akun. Profil & portofolio ada di halaman Profil."
+        description="Atur tema tampilan, format chat, kebijakan paket, dan akun. Profil & portofolio ada di halaman Profil."
       />
       <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tema Tampilan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ThemeSettings />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Format Chat ke Orang Tua</CardTitle>
