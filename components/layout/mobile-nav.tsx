@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { MOBILE_NAV_ITEMS, NAV_ITEMS } from "@/lib/constants";
 import { Logo } from "@/components/shared/logo";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -37,8 +37,8 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background md:hidden print:hidden">
-      <div className="grid grid-cols-6">
+    <nav aria-label="Navigasi utama" className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-border/70 bg-card/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-soft backdrop-blur md:hidden print:hidden">
+      <div className="grid grid-cols-6 gap-0.5">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -46,9 +46,10 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground"
+                "flex min-h-12 flex-col items-center gap-1.5 rounded-xl py-2 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                active ? "bg-mint font-semibold text-primary" : "text-muted-foreground hover:bg-muted"
               )}
             >
               <Icon className="size-5" />
@@ -58,23 +59,24 @@ export function MobileNav() {
         })}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <button className="flex flex-col items-center gap-1 py-2 text-[11px] font-medium text-muted-foreground">
+            <button className="flex min-h-12 flex-col items-center gap-1.5 rounded-xl py-2 text-[10px] font-medium text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
               <Ellipsis className="size-5" />
               Lainnya
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto rounded-t-2xl">
+          <SheetContent side="bottom" showCloseButton={false} className="max-h-[80vh] overflow-y-auto rounded-t-3xl">
             <SheetHeader>
               <SheetTitle asChild>
                 <div className="flex items-center justify-between">
                   <Logo />
-                  <button onClick={() => setOpen(false)} aria-label="Tutup">
+                  <button onClick={() => setOpen(false)} aria-label="Tutup" className="flex size-10 items-center justify-center rounded-xl hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
                     <X className="size-5 text-muted-foreground" />
                   </button>
                 </div>
               </SheetTitle>
+              <SheetDescription className="sr-only">Pilih halaman yang ingin dibuka.</SheetDescription>
             </SheetHeader>
-            <div className="grid grid-cols-3 gap-2 py-4">
+            <div className="grid grid-cols-3 gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
               {NAV_ITEMS.map((item) => {
                 const Icon = ICONS[item.icon];
                 const active = pathname === item.href || pathname.startsWith(item.href + "/");

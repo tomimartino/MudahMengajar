@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, LogOut, Settings } from "lucide-react";
+import { BadgeCheck, ChevronDown, LogOut, Settings } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -32,13 +32,15 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-full outline-none ring-primary focus-visible:ring-2">
-          <Avatar className="size-8">
-            {avatarUrl ? <AvatarImage src={avatarUrl} /> : null}
-            <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+        <button aria-label="Menu akun" className="flex items-center gap-3 rounded-2xl p-1.5 text-left outline-none ring-primary transition-colors hover:bg-card focus-visible:ring-2">
+          <Avatar className="size-10">
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
+            <AvatarFallback className="bg-mint text-xs font-bold text-mint-foreground">
               {initials || "G"}
             </AvatarFallback>
           </Avatar>
+          <span className="hidden max-w-36 truncate text-sm font-semibold lg:block">{name || "Guru"}</span>
+          <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

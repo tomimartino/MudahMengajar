@@ -26,7 +26,7 @@ export function StudentCard({
     );
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <Link href={`/students/${student.id}`} className="min-w-0">
           <p className="truncate font-semibold">{student.full_name}</p>
@@ -38,7 +38,7 @@ export function StudentCard({
         <StudentActions studentId={student.id} studentName={student.full_name} status={student.status} />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1">
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {student.subject_names.map((n) => (
           <Badge key={n} variant="secondary" className="font-normal">
             {n}
@@ -46,7 +46,7 @@ export function StudentCard({
         ))}
       </div>
 
-      <div className="mt-3 space-y-1.5 text-sm">
+      <div className="mt-4 space-y-3 rounded-xl bg-muted/40 p-3 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Jadwal berikutnya</span>
           {student.next_start_at ? (

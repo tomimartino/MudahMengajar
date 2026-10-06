@@ -32,7 +32,7 @@ export function ThemeSettings() {
           {THEMES.map(({ value, label, description, icon: Icon }) => (
             <label
               key={value}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+              className="flex cursor-pointer items-center gap-3 rounded-2xl border bg-muted/20 p-5 transition-colors hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-mint has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
             >
               <input
                 type="radio"

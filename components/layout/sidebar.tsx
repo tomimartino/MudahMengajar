@@ -43,13 +43,13 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-svh shrink-0 flex-col border-r bg-sidebar transition-all duration-200 print:hidden md:flex",
-        collapsed ? "w-16" : "w-60"
+        "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-sidebar-border/60 bg-sidebar transition-all duration-200 print:hidden md:flex",
+        collapsed ? "w-20" : "w-64"
       )}
     >
-      <div className={cn("flex h-14 items-center border-b px-4", collapsed && "justify-center px-2")}>
+      <div className={cn("flex h-20 items-center px-5", collapsed && "justify-center px-2")}>
         {collapsed ? (
-          <Link href="/dashboard" aria-label="MudahMengajar" className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Link href="/dashboard" aria-label="MudahMengajar" className="flex size-10 items-center justify-center rounded-xl bg-mint text-primary">
             <span className="text-sm font-bold">M</span>
           </Link>
         ) : (
@@ -59,7 +59,7 @@ export function Sidebar({
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+      <nav aria-label="Navigasi utama" className="flex-1 space-y-2 overflow-y-auto px-3 py-5">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -67,10 +67,12 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring",
                 active
-                  ? "bg-sidebar-accent text-primary"
+                  ? "bg-sidebar-accent font-semibold text-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 collapsed && "justify-center px-0"
               )}
@@ -92,7 +94,7 @@ export function Sidebar({
 
       <button
         onClick={onToggle}
-        className="flex items-center gap-3 border-t px-3 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="m-3 flex min-h-11 items-center justify-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
       >
         {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}

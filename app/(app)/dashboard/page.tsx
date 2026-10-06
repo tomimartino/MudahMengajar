@@ -24,6 +24,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { LearningIllustration } from "@/components/shared/learning-illustration";
 import {
   DashboardSchedule,
   type DashboardScheduleItem,
@@ -178,13 +179,17 @@ export default async function DashboardPage({
   const firstName = (profile?.full_name ?? "Guru").split(" ")[0] || "Guru";
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Selamat datang, ${firstName}`}
-        description={
-          <DateText value={new Date()} tz={tz} variant="dayDate" className="text-muted-foreground" />
-        }
-      />
+    <div className="space-y-7">
+      <div className="flex items-center justify-between gap-4 overflow-hidden rounded-3xl bg-mint px-6 py-7 sm:px-8 sm:py-8">
+        <PageHeader
+          className="mb-0"
+          title={`Selamat datang, ${firstName}`}
+          description={
+            <DateText value={new Date()} tz={tz} variant="dayDate" className="text-muted-foreground" />
+          }
+        />
+        <LearningIllustration className="hidden w-32 shrink-0 sm:block lg:w-56" />
+      </div>
 
       {!hasStudents && (
         <Card className="border-primary/30 bg-primary/5">
@@ -204,20 +209,22 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard icon={CalendarDays} label="Jadwal Hari Ini" value={stats.schedules_today} />
-        <StatCard icon={Users} label="Siswa Aktif" value={stats.active_students} href="/students" />
+        <StatCard icon={Users} label="Siswa Aktif" value={stats.active_students} href="/students" tone="sky" />
         <StatCard
           icon={Wallet}
           label="Belum Bayar"
           value={stats.open_invoices}
           href="/payments"
+          tone="peach"
         />
         <StatCard
           icon={DollarSign}
           label="Pendapatan Bulan Ini"
           value={<AmountText value={stats.month_income} />}
           href="/finance"
+          tone="lilac"
         />
       </div>
 
@@ -225,8 +232,8 @@ export default async function DashboardPage({
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarDays className="size-4 text-primary" /> Jadwal
+          <CardTitle className="flex items-center gap-3 text-lg">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-mint text-primary"><CalendarDays className="size-5" /></span> Jadwal
           </CardTitle>
         </CardHeader>
         <CardContent>

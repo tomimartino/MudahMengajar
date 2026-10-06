@@ -160,13 +160,13 @@ export function DashboardSchedule({
           </Button>
         </div>
         <p className="text-base font-semibold capitalize">{header}</p>
-        <div className="flex rounded-lg border p-0.5">
+        <div className="flex rounded-xl bg-muted p-1">
           {(["day", "week", "month"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setParam("view", v)}
               className={cn(
-                "rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors",
+                "rounded-lg px-3 py-2 text-sm font-semibold capitalize transition-colors",
                 view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -187,7 +187,7 @@ export function DashboardSchedule({
       )}
 
       {view === "month" ? (
-        <div className="grid grid-cols-7 border-l border-t">
+        <div className="grid grid-cols-7 overflow-hidden rounded-xl border-l border-t">
           {days.map((d) => {
             const count = countsByDay.get(dayKey(d)) ?? 0;
             const isSelected = dayKey(d) === selectedDate;
@@ -196,7 +196,7 @@ export function DashboardSchedule({
                 key={dayKey(d)}
                 onClick={() => setSelectedDate(dayKey(d))}
                 className={cn(
-                  "min-h-20 border-b border-r p-1.5 text-left transition-colors hover:bg-muted/50",
+                  "min-h-16 border-b border-r p-1 text-left transition-colors hover:bg-muted/50 sm:min-h-20 sm:p-2",
                   !isSameMonth(d, current) && "bg-muted/30",
                   isSelected && "bg-primary/10 ring-2 ring-inset ring-primary",
                   isToday(d) && !isSelected && "bg-primary/5"
@@ -211,8 +211,8 @@ export function DashboardSchedule({
                   {format(d, "d")}
                 </span>
                 {count > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
-                    <Users className="size-3" /> {count} murid
+                  <span aria-label={`${count} murid`} className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1 py-0.5 text-[10px] font-semibold text-primary sm:text-[11px]">
+                    <Users className="hidden size-3 xl:block" aria-hidden="true" /> {count}<span className="hidden xl:inline">murid</span>
                   </span>
                 )}
               </button>
@@ -220,7 +220,7 @@ export function DashboardSchedule({
           })}
         </div>
       ) : (
-        <div className={cn("grid gap-3", view === "week" && "grid-cols-2 md:grid-cols-7")}>
+        <div className={cn("grid gap-3", view === "week" && "grid-cols-2 sm:grid-cols-3 xl:grid-cols-7")}>
           {days.map((d) => {
             const count = countsByDay.get(dayKey(d)) ?? 0;
             const isSelected = dayKey(d) === selectedDate;
@@ -229,7 +229,7 @@ export function DashboardSchedule({
                 key={dayKey(d)}
                 onClick={() => setSelectedDate(dayKey(d))}
                 className={cn(
-                  "rounded-xl border p-3 text-left transition-colors hover:border-primary/50",
+                  "rounded-xl border bg-muted/20 p-3 text-left transition-colors hover:border-primary/50",
                   isSelected && "border-primary bg-primary/10",
                   isToday(d) && !isSelected && "border-primary/40"
                 )}
@@ -252,7 +252,7 @@ export function DashboardSchedule({
       )}
 
       <div>
-        <h3 className="mb-3 flex items-center gap-2 text-base font-semibold">
+        <h3 className="mb-4 flex flex-wrap items-center gap-2 text-sm font-semibold sm:text-base">
           <CalendarDays className="size-4 text-primary" /> Jadwal{" "}
           <DateText
             value={parse(selectedDate, "yyyy-MM-dd", new Date())}
@@ -271,11 +271,11 @@ export function DashboardSchedule({
             {selectedSchedules.map((s) => (
               <div
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4"
               >
-                <button className="min-w-0 flex-1 text-left" onClick={() => setDetail(s)}>
+                <button className="min-w-0 flex-1 basis-full text-left lg:basis-0" onClick={() => setDetail(s)}>
                   <div className="flex items-center gap-4">
-                    <div className="text-center">
+                    <div className="rounded-xl bg-sky px-3 py-3 text-center text-sky-foreground">
                       <p className="text-lg font-bold leading-none">
                         <DateText value={s.start_at} tz={timezone} variant="time" />
                       </p>
@@ -283,9 +283,9 @@ export function DashboardSchedule({
                         <DateText value={s.end_at} tz={timezone} variant="time" />
                       </p>
                     </div>
-                    <div>
-                      <p className="font-semibold">{s.student_name}</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-semibold">{s.student_name}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
                         {s.subject_name}
                         {s.grade_level ? ` · Kelas ${s.grade_level} ${s.school_level ?? ""}` : ""}
                         {s.learning_mode
@@ -295,7 +295,7 @@ export function DashboardSchedule({
                     </div>
                   </div>
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:w-auto lg:justify-start">
                   <ScheduleStatusBadge status={s.status} startAt={s.start_at} endAt={s.end_at} />
                   {s.status === "scheduled" && (
                     <Button size="sm" onClick={() => setCompleting(s)}>

@@ -39,7 +39,7 @@ export function StudentTable({
   if (students.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-soft">
       <Table>
         <TableHeader>
           <TableRow>

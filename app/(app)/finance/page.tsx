@@ -164,6 +164,7 @@ export default async function FinancePage({
         />
         <StatCard
           icon={TrendingUp}
+          tone="lilac"
           label={`Estimasi Pendapatan ${label}`}
           value={<AmountText value={invoiceEstimates.get(month) ?? 0} />}
           hint="Total tagihan siswa, sudah & belum bayar."
@@ -182,7 +183,7 @@ export default async function FinancePage({
               key={k}
               href={`/finance?year=${year}&month=${k}`}
               className={cn(
-                "rounded-xl border bg-card p-4 transition-colors hover:border-primary/50",
+                "rounded-2xl border bg-card p-5 shadow-soft transition-colors hover:border-primary/50",
                 isCurrent && "border-primary bg-primary/5"
               )}
             >
