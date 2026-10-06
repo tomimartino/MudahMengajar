@@ -16,7 +16,6 @@ export default async function PaymentsPage({
     <div>
       <PageHeader
         title="Pembayaran"
-        description="Kelola tagihan dan transaksi pembayaran siswa."
       />
       <PaymentsTabContent month={month} />
     </div>

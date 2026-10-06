@@ -236,10 +236,6 @@ export function PortfolioEditButton({
                           <Input placeholder="mis. paktomi" {...field} />
                         </div>
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        Huruf kecil, angka, dan tanda hubung. Kosongkan untuk memakai link
-                        otomatis.
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -304,9 +300,6 @@ export function PortfolioEditButton({
             <div className="space-y-2 border-t pt-4">
               <p className="text-xs font-semibold uppercase text-muted-foreground">
                 Hapus mapel dari daftar
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Mapel yang masih dipakai siswa atau jadwal tidak dapat dihapus.
               </p>
               <div className="flex flex-wrap gap-2">
                 {subjects.map((s) => (

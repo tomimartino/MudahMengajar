@@ -149,19 +149,14 @@ export function PushSettings() {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="max-w-md space-y-1">
         <p className="text-sm font-medium">Notifikasi di HP</p>
-        <p className="text-xs text-muted-foreground">
-          Terima notifikasi jadwal hari ini, pembayaran jatuh tempo, dan paket
-          hampir habis langsung di HP — bahkan saat aplikasi tidak dibuka. Di
-          iPhone, pasang aplikasi ke layar utama terlebih dahulu.
-        </p>
         <div className="pt-1">
           {status === "subscribed" && <StatusBadge tone="green">Aktif di perangkat ini</StatusBadge>}
           {status === "granted" && <StatusBadge tone="yellow">Izin diberikan, belum berlangganan</StatusBadge>}
-          {status === "denied" && <StatusBadge tone="red">Ditolak — ubah izin di pengaturan browser</StatusBadge>}
+          {status === "denied" && <StatusBadge tone="red">Ditolak</StatusBadge>}
           {status === "unsupported" && (
             <StatusBadge tone="gray">
               {isIOSDevice()
-                ? "Pasang ke layar utama dulu, lalu buka dari ikonnya"
+                ? "Belum tersedia di mode browser"
                 : "Browser tidak mendukung push"}
             </StatusBadge>
           )}

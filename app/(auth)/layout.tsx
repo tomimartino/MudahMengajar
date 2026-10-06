@@ -9,10 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Logo />
           <div className="my-auto hidden py-8 lg:block">
             <LearningIllustration className="mx-auto w-full max-w-xs" />
-            <h2 className="mt-6 max-w-xs text-3xl font-bold leading-tight tracking-tight">Lebih banyak waktu untuk mengajar.</h2>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-mint-foreground">Siswa, jadwal, dan pembayaran dalam satu ruang yang tertata.</p>
           </div>
-          <p className="mt-4 text-xs text-mint-foreground lg:mt-8">Administrasi bimbel jadi lebih ringan.</p>
         </div>
         <div className="flex items-center justify-center px-6 py-9 sm:p-10 lg:p-12">
           <div className="w-full max-w-sm">{children}</div>

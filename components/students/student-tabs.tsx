@@ -154,7 +154,6 @@ export async function ScheduleTab({ studentId, timezone }: { studentId: string; 
       <EmptyState
         icon={CalendarDays}
         title="Belum ada jadwal."
-        description="Jadwal dibuat otomatis saat menambah murid."
       />
     );
   }
@@ -204,7 +203,7 @@ export async function SessionsTab({ studentId, timezone }: { studentId: string; 
   ]);
 
   if (!sessions || sessions.length === 0) {
-    return <EmptyState icon={ClipboardCheck} title="Belum ada pertemuan." description="Selesaikan jadwal untuk membuat catatan pertemuan." />;
+    return <EmptyState icon={ClipboardCheck} title="Belum ada pertemuan." />;
   }
 
   const attMap = new Map((attendance ?? []).map((a) => [a.session_id, a.status]));
@@ -246,7 +245,7 @@ export async function ScoresTab({ studentId, timezone }: { studentId: string; ti
     .limit(100);
 
   if (!sessions || sessions.length === 0) {
-    return <EmptyState icon={Star} title="Belum ada nilai." description="Nilai tersimpan saat menyelesaikan pertemuan." />;
+    return <EmptyState icon={Star} title="Belum ada nilai." />;
   }
 
   return (

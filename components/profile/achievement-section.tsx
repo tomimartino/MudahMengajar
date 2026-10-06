@@ -95,7 +95,6 @@ export function AchievementSection({ achievements }: { achievements: Achievement
         <EmptyState
           icon={Award}
           title="Belum ada sertifikat."
-          description="Tampilkan sertifikatmu — sertifikasi mengajar, pelatihan, atau penghargaan."
         />
       ) : (
         <div className="space-y-3">

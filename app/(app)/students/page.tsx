@@ -271,7 +271,6 @@ export default async function StudentsPage({
       <div>
         <PageHeader
           title="Murid"
-          description="Semua siswa bimbelmu dalam satu daftar"
           action={
             <Button asChild>
               <Link href="/students/new">
@@ -286,11 +285,6 @@ export default async function StudentsPage({
         <EmptyState
           icon={Users}
           title={searchText || hasActiveFilter ? "Tidak ada siswa yang cocok." : "Belum ada siswa."}
-          description={
-            searchText || hasActiveFilter
-              ? "Coba ubah kata kunci atau hapus filter."
-              : "Tambahkan siswa pertamamu untuk mulai mengelola jadwal dan pembayaran."
-          }
           action={
             !searchText && !hasActiveFilter ? (
               <Button asChild>

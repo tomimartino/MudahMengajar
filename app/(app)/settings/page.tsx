@@ -29,7 +29,6 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Pengaturan"
-        description="Atur tema tampilan, format chat, kebijakan paket, dan akun. Profil & portofolio ada di halaman Profil."
       />
       <div className="space-y-6">
         <Card>

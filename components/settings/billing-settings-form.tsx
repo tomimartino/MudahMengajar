@@ -99,9 +99,6 @@ export function BillingSettingsForm({
         <div className="space-y-4 border-t pt-4">
           <div>
             <p className="text-sm font-medium">Kebijakan Paket</p>
-            <p className="text-xs text-muted-foreground">
-              Kapan paket pertemuan dikurangi saat pertemuan selesai.
-            </p>
           </div>
           <FormField
             control={form.control}
@@ -145,9 +142,6 @@ export function BillingSettingsForm({
         <div className="space-y-4 border-t pt-4">
           <div>
             <p className="text-sm font-medium">Pembayaran</p>
-            <p className="text-xs text-muted-foreground">
-              Berapa hari sebelum jatuh tempo pengingat muncul.
-            </p>
           </div>
           <FormField
             control={form.control}
@@ -173,9 +167,6 @@ export function BillingSettingsForm({
               <FormItem className="flex items-center justify-between">
                 <div>
                   <FormLabel>Pengingat jadwal</FormLabel>
-                  <p className="text-xs text-muted-foreground">
-                    Jadwal hari ini dan jadwal berikutnya.
-                  </p>
                 </div>
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -190,9 +181,6 @@ export function BillingSettingsForm({
               <FormItem className="flex items-center justify-between">
                 <div>
                   <FormLabel>Pengingat pembayaran</FormLabel>
-                  <p className="text-xs text-muted-foreground">
-                    Tagihan jatuh tempo dan terlambat.
-                  </p>
                 </div>
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -207,9 +195,6 @@ export function BillingSettingsForm({
               <FormItem className="flex items-center justify-between">
                 <div>
                   <FormLabel>Pengingat paket</FormLabel>
-                  <p className="text-xs text-muted-foreground">
-                    Paket siswa hampir habis.
-                  </p>
                 </div>
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />

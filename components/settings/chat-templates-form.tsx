@@ -13,8 +13,6 @@ import {
 } from "@/lib/validations/settings";
 import {
   DEFAULT_MESSAGE_TEMPLATES,
-  INVOICE_TEMPLATE_PLACEHOLDERS,
-  REPORT_TEMPLATE_PLACEHOLDERS,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,19 +25,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SubmitButton } from "@/components/shared/submit-button";
-
-function PlaceholderHint({ names }: { names: readonly string[] }) {
-  return (
-    <p className="text-xs text-muted-foreground">
-      Placeholder:{" "}
-      {names.map((n) => (
-        <code key={n} className="mx-0.5 rounded bg-muted px-1">
-          {"{{" + n + "}}"}
-        </code>
-      ))}
-    </p>
-  );
-}
 
 export function ChatTemplatesForm({
   initial,
@@ -87,7 +72,6 @@ export function ChatTemplatesForm({
                 <FormControl>
                   <Textarea rows={7} className="font-mono text-xs" {...field} />
                 </FormControl>
-                <PlaceholderHint names={INVOICE_TEMPLATE_PLACEHOLDERS} />
                 <FormMessage />
               </FormItem>
             )}
@@ -104,7 +88,6 @@ export function ChatTemplatesForm({
                 <FormControl>
                   <Textarea rows={7} className="font-mono text-xs" {...field} />
                 </FormControl>
-                <PlaceholderHint names={REPORT_TEMPLATE_PLACEHOLDERS} />
                 <FormMessage />
               </FormItem>
             )}

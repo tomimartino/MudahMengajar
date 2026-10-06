@@ -7,14 +7,12 @@ const ACTIONS = [
     label: "Tambah Siswa",
     href: "/students/new",
     icon: UserPlus,
-    description: "Daftarkan siswa baru",
     color: "bg-mint text-mint-foreground",
   },
   {
     label: "Catat Pembayaran",
     href: "/payments",
     icon: ReceiptText,
-    description: "Lihat tagihan & catat pembayaran",
     color: "bg-peach text-peach-foreground",
   },
 ];
@@ -35,9 +33,6 @@ export function QuickActions() {
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-semibold leading-relaxed">{a.label}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  {a.description}
-                </span>
               </span>
               <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>

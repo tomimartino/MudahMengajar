@@ -83,7 +83,7 @@ export default async function SessionsPage({
 
   return (
     <div>
-      <PageHeader title="Pertemuan" description="Catatan kegiatan belajar per pertemuan." />
+      <PageHeader title="Pertemuan" />
       <div className="mb-4 mt-4 flex flex-wrap items-end gap-3">
         <MonthFilter month={month} monthOptions={monthOptions} />
         <StudentFilter students={students ?? []} studentId={studentId} />
@@ -98,7 +98,6 @@ export default async function SessionsPage({
         <EmptyState
           icon={BookOpen}
           title="Belum ada pertemuan bulan ini."
-          description="Pertemuan tercatat otomatis saat jadwal diselesaikan."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">

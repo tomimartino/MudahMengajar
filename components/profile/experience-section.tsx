@@ -115,7 +115,6 @@ export function ExperienceSection({ experiences }: { experiences: ExperienceRow[
         <EmptyState
           icon={Briefcase}
           title="Belum ada riwayat mengajar."
-          description="Tambahkan pengalaman mengajarmu untuk memperkuat profil."
         />
       ) : (
         <div className="space-y-3">

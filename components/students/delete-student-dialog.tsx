@@ -80,11 +80,6 @@ export function DeleteStudentDialog({
             onChange={(e) => setTyped(e.target.value)}
             placeholder={DELETE_STUDENT_CONFIRMATION}
           />
-          {!matches && (
-            <p className="text-xs text-muted-foreground">
-              Teks harus persis sama dengan &quot;{DELETE_STUDENT_CONFIRMATION}&quot;.
-            </p>
-          )}
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}
         </div>
         <AlertDialogFooter>

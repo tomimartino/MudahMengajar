@@ -149,7 +149,6 @@ export default async function FinancePage({
     <div>
       <PageHeader
         title="Keuangan"
-        description="Rekap pendapatan dan estimasi dari tagihan siswa."
       />
 
       <div className="mb-4">
@@ -167,7 +166,6 @@ export default async function FinancePage({
           tone="lilac"
           label={`Estimasi Pendapatan ${label}`}
           value={<AmountText value={invoiceEstimates.get(month) ?? 0} />}
-          hint="Total tagihan siswa, sudah & belum bayar."
         />
       </div>
 
@@ -208,7 +206,6 @@ export default async function FinancePage({
         <EmptyState
           icon={ReceiptText}
           title={`Tidak ada pembayaran pada ${label}.`}
-          description="Pembayaran yang dicatat akan muncul di sini."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">

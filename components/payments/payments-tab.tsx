@@ -155,7 +155,6 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
         <EmptyState
           icon={ReceiptText}
           title="Belum ada tagihan."
-          description="Tagihan dibuat otomatis saat siswa baru disimpan, atau buat tagihan manual / generate tagihan bulanan."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
@@ -214,7 +213,6 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
         <EmptyState
           icon={Wallet}
           title="Belum ada transaksi pembayaran."
-          description="Catat pembayaran dari siswa untuk mulai melacak pemasukan."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">

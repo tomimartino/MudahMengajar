@@ -41,7 +41,6 @@ export default async function NewStudentPage() {
         <EmptyState
           icon={BookOpen}
           title="Belum ada mata pelajaran."
-          description="Tambahkan mata pelajaran terlebih dahulu di Pengaturan, lalu kembali ke sini."
           action={
             <Button asChild>
               <Link href="/settings">Buka Pengaturan</Link>
@@ -56,7 +55,6 @@ export default async function NewStudentPage() {
     <div>
       <PageHeader
         title="Tambah Siswa"
-        description="Isi data siswa. Kolom bertanda * wajib diisi."
       />
       <StudentForm
         subjects={subjects}

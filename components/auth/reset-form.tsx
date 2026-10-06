@@ -43,9 +43,6 @@ export function ResetForm() {
     <div className="space-y-6">
       <div className="space-y-1 text-center">
         <h1 className="text-xl font-bold">Kata sandi baru</h1>
-        <p className="text-sm text-muted-foreground">
-          Buat kata sandi baru untuk akunmu.
-        </p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -196,9 +196,6 @@ export default async function DashboardPage({
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
             <div>
               <p className="font-semibold">Belum ada siswa.</p>
-              <p className="text-sm text-muted-foreground">
-                Mulai dengan menambahkan siswa pertamamu.
-              </p>
             </div>
             <Button asChild>
               <Link href="/students/new">

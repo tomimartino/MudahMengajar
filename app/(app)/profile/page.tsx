@@ -62,7 +62,6 @@ export default async function ProfilePage() {
     <div>
       <PageHeader
         title="Profil"
-        description="Portofolio kamu sebagai guru — terlihat seperti profil profesional."
       />
 
       <Card className="mb-6">
@@ -146,7 +145,7 @@ export default async function ProfilePage() {
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {profile.bio || "Belum ada deskripsi. Ceritakan pendekatan mengajarmu di Edit Profil."}
+                {profile.bio || "Belum ada deskripsi."}
               </p>
             </CardContent>
           </Card>
@@ -170,7 +169,7 @@ export default async function ProfilePage() {
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Belum ada tarif — tambahkan di Edit Profil.
+                  Belum ada tarif.
                 </p>
               )}
             </CardContent>

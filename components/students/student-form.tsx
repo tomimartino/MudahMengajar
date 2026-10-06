@@ -633,9 +633,6 @@ export function StudentForm({
                   )}
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Tenggat bayar otomatis mengikuti hari terakhir jadwal.
-              </p>
             </div>
           )}
 
@@ -672,13 +669,7 @@ export function StudentForm({
         </section>
 
         <section className="rounded-xl border bg-card p-5">
-          <h2 className="mb-1 text-sm font-semibold text-muted-foreground">JADWAL</h2>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Pilih hari dan jam mengajar. Paket → jadwal dibuat sebanyak jumlah pertemuan
-            paket. Bulanan → jadwal dibuat pada hari terpilih sampai tanggal jatuh tempo.
-            Jadwal dimulai dari tanggal mulai; pertemuan yang sudah lewat otomatis
-            berstatus Selesai.
-          </p>
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">JADWAL</h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <FormLabel>Hari mengajar</FormLabel>
@@ -789,7 +780,7 @@ export function StudentForm({
             </div>
             {typeof defaultDurationMinutes === "number" && (
               <p className="text-xs text-muted-foreground">
-                Durasi pertemuan {defaultDurationMinutes} menit (diatur di Pengaturan).
+                Durasi pertemuan: {defaultDurationMinutes} menit
               </p>
             )}
           </div>

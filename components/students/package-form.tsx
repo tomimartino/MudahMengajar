@@ -55,10 +55,6 @@ export function AddPackageButton({
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Tambah Paket Pertemuan</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Kolom terisi dari data siswa saat ini — ubah sesuai paket berikutnya.
-            Paket &amp; tagihan otomatis dibuat saat disimpan.
-          </p>
         </DialogHeader>
         <StudentForm
           mode="package"
@@ -195,7 +191,7 @@ export function PackagePanel({
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Belum ada paket. Klik &quot;Tambah Paket&quot; di atas untuk membuat paket.
+            Belum ada paket.
           </p>
         )}
       </CardContent>
@@ -245,15 +241,13 @@ export function AdjustPackageButton({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Sesuaikan Paket Terpakai</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Koreksi manual jumlah pertemuan terpakai (0–{total}). Tidak mengubah riwayat presensi.
-          </p>
         </DialogHeader>
         <div className="space-y-2">
           <Input
             type="number"
             min={0}
             max={total}
+            aria-label="Jumlah pertemuan terpakai"
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />

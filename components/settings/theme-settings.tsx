@@ -5,12 +5,11 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const THEMES = [
-  { value: "light", label: "Terang", description: "Tampilan cerah.", icon: Sun },
-  { value: "dark", label: "Gelap", description: "Tampilan redup.", icon: Moon },
+  { value: "light", label: "Terang", icon: Sun },
+  { value: "dark", label: "Gelap", icon: Moon },
   {
     value: "system",
     label: "Ikuti Sistem",
-    description: "Sesuaikan dengan tema perangkat.",
     icon: Monitor,
   },
 ] as const;
@@ -26,10 +25,10 @@ export function ThemeSettings() {
 
   return (
     <div className="space-y-3">
-      <fieldset disabled={!mounted} aria-describedby="theme-description">
+      <fieldset disabled={!mounted}>
         <legend className="sr-only">Tema tampilan</legend>
         <div className="grid gap-3 sm:grid-cols-3">
-          {THEMES.map(({ value, label, description, icon: Icon }) => (
+          {THEMES.map(({ value, label, icon: Icon }) => (
             <label
               key={value}
               className="flex cursor-pointer items-center gap-3 rounded-2xl border bg-muted/20 p-5 transition-colors hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-mint has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
@@ -43,17 +42,11 @@ export function ThemeSettings() {
                 className="size-4 shrink-0 accent-primary"
               />
               <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="space-y-1">
-                <span className="block text-sm font-medium">{label}</span>
-                <span className="block text-xs text-muted-foreground">{description}</span>
-              </span>
+              <span className="text-sm font-medium">{label}</span>
             </label>
           ))}
         </div>
       </fieldset>
-      <p id="theme-description" className="text-sm text-muted-foreground">
-        Pilihan diterapkan langsung dan disimpan di perangkat ini.
-      </p>
     </div>
   );
 }

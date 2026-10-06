@@ -57,9 +57,6 @@ export function RegisterForm() {
     <div className="space-y-6">
       <div className="space-y-1 text-center">
         <h1 className="text-xl font-bold">Daftar akun</h1>
-        <p className="text-sm text-muted-foreground">
-          Gratis, tanpa kartu kredit.
-        </p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

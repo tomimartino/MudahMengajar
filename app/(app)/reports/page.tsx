@@ -70,7 +70,6 @@ export default async function ReportsPage({
     <div>
       <PageHeader
         title="Laporan"
-        description="Rekap data bimbel dengan filter periode dan siswa."
         action={
           <Button asChild variant="outline">
             <Link href={exportHref}>
@@ -105,7 +104,6 @@ export default async function ReportsPage({
         <EmptyState
           icon={FileBarChart}
           title="Tidak ada data untuk periode ini."
-          description="Coba ubah rentang tanggal atau filter siswa."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">

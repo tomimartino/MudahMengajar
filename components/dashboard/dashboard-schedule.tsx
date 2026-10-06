@@ -264,7 +264,6 @@ export function DashboardSchedule({
           <EmptyState
             icon={CalendarDays}
             title="Tidak ada jadwal pada tanggal ini."
-            description="Klik tanggal lain di kalender untuk melihat murid yang diajar."
           />
         ) : (
           <div className="space-y-3">
