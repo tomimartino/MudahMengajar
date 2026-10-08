@@ -3,10 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentForm } from "@/components/students/student-form";
-import { buildSchedulePattern } from "@/lib/utils/schedule-pattern";
 import type { SchoolLevel } from "@/lib/constants";
 
-export const metadata: Metadata = { title: "Edit Siswa" };
+export const metadata: Metadata = { title: "Edit Identitas" };
 
 export default async function EditStudentPage({
   params,
@@ -20,64 +19,23 @@ export default async function EditStudentPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: student }, { data: subjects }, { data: links }, { data: profile }, { data: settings }, { data: activePackage }, { data: upcomingSchedules }] =
-    await Promise.all([
-      supabase
-        .from("students")
-        .select("*, parents(name, whatsapp)")
-        .eq("id", id)
-        .is("deleted_at", null)
-        .single(),
-      supabase
-        .from("subjects")
-        .select("id, name")
-        .eq("user_id", user.id)
-        .order("name"),
-      supabase.from("student_subjects").select("subject_id").eq("student_id", id),
-      supabase
-        .from("profiles")
-        .select("teaching_levels, learning_mode, timezone")
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("settings")
-        .select("default_duration_minutes")
-        .eq("user_id", user.id)
-        .single(),
-      supabase
-        .from("student_packages")
-        .select("total_sessions, price, per_session_rate, start_date")
-        .eq("student_id", id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("schedules")
-        .select("start_at, location")
-        .eq("student_id", id)
-        .eq("status", "scheduled")
-        .order("start_at")
-        .limit(100),
-    ]);
+  const [{ data: student }, { data: profile }] = await Promise.all([
+    supabase.from("students").select("*, parents(name, whatsapp)")
+      .eq("id", id).eq("user_id", user.id).is("deleted_at", null).single(),
+    supabase.from("profiles").select("teaching_levels, timezone").eq("id", user.id).single(),
+  ]);
   if (!student) notFound();
 
   const parent = student.parents as unknown as { name: string; whatsapp: string } | null;
 
-  // Pola jadwal mendatang → hari + jam, tanggal mulai, dan lokasi untuk prefill form.
-  const tz = profile?.timezone ?? "Asia/Jakarta";
-  const pattern = buildSchedulePattern(upcomingSchedules, tz);
-
   return (
     <div>
-      <PageHeader title={`Edit Siswa — ${student.full_name}`} />
+      <PageHeader title={`Edit Identitas — ${student.full_name}`} />
       <StudentForm
-        subjects={subjects ?? []}
+        mode="identity"
+        subjects={[]}
         schoolLevels={profile?.teaching_levels as SchoolLevel[] | undefined}
-        defaultLearningMode={
-          (profile?.learning_mode as "offline" | "online" | "hybrid" | undefined) ?? "offline"
-        }
-        defaultDurationMinutes={settings?.default_duration_minutes ?? 90}
+        timezone={profile?.timezone ?? "Asia/Jakarta"}
         initial={{
           id: student.id,
           full_name: student.full_name,
@@ -91,20 +49,6 @@ export default async function EditStudentPage({
           parent_whatsapp: parent?.whatsapp ?? "",
           address: student.address ?? "",
           notes: student.notes ?? "",
-          learning_mode: student.learning_mode,
-          billing_type: student.billing_type,
-          per_session_rate: student.per_session_rate,
-          monthly_fee: student.monthly_fee,
-          monthly_due_day: student.monthly_due_day,
-          package_sessions: activePackage?.total_sessions ?? null,
-          package_per_session_rate: activePackage?.per_session_rate ?? null,
-          package_price: activePackage?.price ?? null,
-          package_start_date: activePackage?.start_date ?? "",
-          schedule_times: pattern.times,
-          schedule_location: pattern.location,
-          schedule_start_date: pattern.startDate,
-          status: student.status,
-          subject_ids: (links ?? []).map((l) => l.subject_id),
         }}
       />
     </div>

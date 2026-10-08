@@ -24,7 +24,7 @@ export default async function NewStudentPage() {
       .order("name"),
     supabase
       .from("profiles")
-      .select("teaching_levels, learning_mode")
+      .select("teaching_levels, learning_mode, timezone")
       .eq("id", user!.id)
       .single(),
     supabase
@@ -63,6 +63,7 @@ export default async function NewStudentPage() {
           (profile?.learning_mode as "offline" | "online" | "hybrid" | undefined) ?? "offline"
         }
         defaultDurationMinutes={settings?.default_duration_minutes ?? 90}
+        timezone={profile?.timezone ?? "Asia/Jakarta"}
       />
     </div>
   );

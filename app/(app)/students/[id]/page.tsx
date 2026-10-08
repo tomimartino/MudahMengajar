@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessageCircle, Pencil } from "lucide-react";
+import { MessageCircle, Package, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/shared/badges";
 import { StudentActions } from "@/components/students/student-actions";
@@ -128,7 +128,12 @@ export default async function StudentDetailPage({
           )}
           <Button asChild variant="outline" size="sm">
             <Link href={`/students/${id}/edit`}>
-              <Pencil className="size-4" /> Edit
+              <Pencil className="size-4" /> Edit Identitas
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/students/${id}/edit-package`}>
+              <Package className="size-4" /> Edit Paket
             </Link>
           </Button>
           <StudentActions studentId={student.id} studentName={student.full_name} status={student.status} />

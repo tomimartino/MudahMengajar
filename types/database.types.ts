@@ -301,6 +301,7 @@ export type Database = {
           sessions_used: number;
           price: string;
           per_session_rate: string | null;
+          form_settings: Json | null;
           start_date: string;
           status: string;
           created_at: string;
@@ -315,6 +316,7 @@ export type Database = {
           sessions_used?: number;
           price: string;
           per_session_rate?: string | null;
+          form_settings?: Json | null;
           start_date: string;
           status?: string;
           created_at?: string;
@@ -326,6 +328,7 @@ export type Database = {
           sessions_used: number;
           price: string;
           per_session_rate: string | null;
+          form_settings: Json | null;
           start_date: string;
           status: string;
           updated_at: string;
@@ -337,6 +340,7 @@ export type Database = {
           id: string;
           user_id: string;
           student_id: string;
+          package_id: string | null;
           subject_id: string;
           start_at: string;
           end_at: string;
@@ -353,6 +357,7 @@ export type Database = {
           id?: string;
           user_id: string;
           student_id: string;
+          package_id?: string | null;
           subject_id: string;
           start_at: string;
           end_at: string;
@@ -367,6 +372,7 @@ export type Database = {
         };
         Update: Partial<{
           student_id: string;
+          package_id: string | null;
           subject_id: string;
           start_at: string;
           end_at: string;
@@ -682,6 +688,12 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      update_student_package: {
+        Args: { p_student_id: string; p_package_id: string; p_total_sessions: number;
+          p_per_session_rate: number; p_price: number; p_settings: Json; };
+        Returns: undefined;
+      };
+
       get_admin_access: { Args: Record<string, never>; Returns: Json };
       get_account_access: { Args: Record<string, never>; Returns: Json };
       get_site_config: { Args: Record<string, never>; Returns: Json };

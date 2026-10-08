@@ -3,6 +3,8 @@ import {
   aggregateInvoiceMonthly,
   aggregateMonthly,
   invoiceMonthKey,
+  paymentMonthKey,
+  MONTH_KEY_RE,
   lastTwelveMonthKeys,
   monthDateRange,
   monthLabel,
@@ -44,6 +46,78 @@ describe("aggregateMonthly", () => {
       { payment_date: "2026-09-02", amount: "50000", student_id: "a" },
     ]);
     expect(map.get("2026-09")?.total).toBe(150000);
+  });
+});
+
+describe("tanggal pembayaran dan jatuh tempo terpisah", () => {
+  const septemberInvoice = { due_date: "2026-09-21", created_at: "2026-10-09T08:00:00Z" };
+  const octoberInvoice = { due_date: "2026-10-21", created_at: "2026-09-25T08:00:00Z" };
+
+  it("tagihan September yang dilunasi Oktober menghasilkan pendapatan Oktober", () => {
+    const payment = { payment_date: "2026-10-09", amount: "300000", student_id: "a", invoice: septemberInvoice };
+    const months = aggregateMonthly([payment]);
+    expect(paymentMonthKey(payment)).toBe("2026-10");
+    expect(months.get("2026-10")?.total).toBe(300000);
+    expect(months.has("2026-09")).toBe(false);
+    expect(payment.payment_date).toBe("2026-10-09");
+  });
+
+  it("mencatat cicilan pada tanggal masing-masing dan tidak menggandakannya", () => {
+    const payments = [
+      { payment_date: "2026-09-10", amount: 100000, student_id: "a", invoice: septemberInvoice },
+      { payment_date: "2026-10-09", amount: 75000, student_id: "a", invoice: septemberInvoice },
+      { payment_date: "2026-11-01", amount: 125000, student_id: "a", invoice: septemberInvoice },
+      { payment_date: "2026-09-29", amount: 200000, student_id: "b", invoice: octoberInvoice },
+    ];
+    const months = aggregateMonthly(payments);
+    expect(months.get("2026-09")).toMatchObject({ total: 300000, count: 2 });
+    expect(months.get("2026-09")?.students.size).toBe(2);
+    expect(months.get("2026-10")?.total).toBe(75000);
+    expect(months.get("2026-11")?.total).toBe(125000);
+  });
+
+  it("estimasi memuat nominal tagihan lunas, sebagian, dan belum lunas pada bulan yang sama", () => {
+    const invoices = [
+      { ...septemberInvoice, amount: 300000, status: "paid" },
+      { ...septemberInvoice, amount: 200000, status: "partial" },
+      { ...septemberInvoice, amount: 100000, status: "unpaid" },
+      { ...octoberInvoice, amount: 400000, status: "unpaid" },
+    ];
+    const estimates = aggregateInvoiceMonthly(invoices);
+    const payments = [
+      { payment_date: "2026-10-09", amount: 300000, student_id: "a", invoice: invoices[0] },
+      { payment_date: "2026-10-09", amount: 50000, student_id: "b", invoice: invoices[1] },
+    ];
+    const paid = aggregateMonthly(payments);
+    expect(estimates.get("2026-09")).toBe(600000);
+    expect(estimates.get("2026-10")).toBe(400000);
+    expect(paid.get("2026-10")?.total).toBe(350000);
+    expect(paid.has("2026-09")).toBe(false);
+  });
+
+  it("menempatkan pelunasan tagihan Desember pada tanggal pembayaran Januari", () => {
+    const payments = [{ payment_date: "2027-01-05", amount: 100000, student_id: "a",
+      invoice: { due_date: "2026-12-31", created_at: "2027-01-01T08:00:00Z" } }];
+    const months = aggregateMonthly(payments);
+    expect(months.get("2027-01")?.total).toBe(100000);
+    expect(months.has("2026-12")).toBe(false);
+  });
+
+  it("tanggal pembayaran tetap dipakai meskipun tagihan tidak memiliki jatuh tempo", () => {
+    const payment = { payment_date: "2026-11-01", amount: 100000, student_id: "a",
+      invoice: { due_date: null, created_at: "2026-09-30T18:00:00Z" } };
+    expect(aggregateMonthly([payment]).get("2026-11")?.total).toBe(100000);
+    expect(aggregateMonthly([payment]).has("2026-10")).toBe(false);
+  });
+
+  it("transaksi tanpa tagihan tetap memakai tanggal pembayaran", () => {
+    expect(paymentMonthKey({ payment_date: "2026-10-09" })).toBe("2026-10");
+  });
+
+  it("menolak parameter bulan di luar 01–12", () => {
+    expect(MONTH_KEY_RE.test("2026-09")).toBe(true);
+    expect(MONTH_KEY_RE.test("2026-00")).toBe(false);
+    expect(MONTH_KEY_RE.test("2026-13")).toBe(false);
   });
 });
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Ban, CircleCheck, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Ban, CircleCheck, Eye, MoreHorizontal, Package, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { setStudentStatusAction } from "@/lib/actions/students";
 import { DeleteStudentDialog } from "@/components/students/delete-student-dialog";
@@ -44,7 +44,7 @@ export function StudentActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={pendingId === studentId}>
+        <Button variant="ghost" size="icon" disabled={pendingId === studentId} aria-label={`Menu ${studentName}`}>
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -56,7 +56,12 @@ export function StudentActions({
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href={`/students/${studentId}/edit`}>
-            <Pencil className="size-4" /> Edit
+            <Pencil className="size-4" /> Edit Identitas
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/students/${studentId}/edit-package`}>
+            <Package className="size-4" /> Edit Paket
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

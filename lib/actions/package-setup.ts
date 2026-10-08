@@ -6,6 +6,7 @@ import { fail, ok, type ActionResult } from "@/lib/actions/helpers";
 import { buildSchedulePattern } from "@/lib/utils/schedule-pattern";
 import { toDateInput } from "@/lib/utils/date";
 import type { StudentFormInitial } from "@/components/students/student-form";
+import type { PackageScheduleContext } from "@/lib/utils/package-edit-schedule";
 
 export interface PackageStudent {
   id: string;
@@ -20,6 +21,8 @@ export interface PackageFormSetup {
   initial: StudentFormInitial;
   subjects: { id: string; name: string }[];
   defaultDurationMinutes: number;
+  timezone: string;
+  packageSchedule?: PackageScheduleContext;
 }
 
 /** Semua murid milik guru, terlepas dari pencarian/filter/paginasi halaman Murid. */
@@ -71,6 +74,7 @@ export async function getPackageFormSetupAction(studentId: string): Promise<Acti
   }
   const timezone = profile.data?.timezone ?? "Asia/Jakarta";
   const pattern = buildSchedulePattern(schedules.data, timezone);
+  const startDate = pattern.startDate || toDateInput(new Date(), timezone);
   return ok({
     initial: {
       id: student.id,
@@ -79,14 +83,15 @@ export async function getPackageFormSetupAction(studentId: string): Promise<Acti
       billing_type: "package",
       package_sessions: activePackage.data?.total_sessions ?? null,
       package_per_session_rate: activePackage.data?.per_session_rate ?? null,
-      package_start_date: toDateInput(new Date()),
+      package_start_date: startDate,
       schedule_times: pattern.times,
       schedule_location: pattern.location,
-      schedule_start_date: pattern.startDate,
+      schedule_start_date: startDate,
       subject_ids: (links.data ?? []).map((link) => link.subject_id),
       status: student.status,
     },
     subjects: subjects.data ?? [],
     defaultDurationMinutes: settings.data?.default_duration_minutes ?? 90,
+    timezone,
   });
 }

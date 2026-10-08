@@ -125,6 +125,7 @@ export function AddPackageButton() {
         ) : setup && selected ? (
           <StudentForm key={selected.id} mode="package" subjects={setup.subjects} initial={setup.initial}
             defaultDurationMinutes={setup.defaultDurationMinutes}
+            timezone={setup.timezone}
             onSuccess={() => { changeOpen(false); router.refresh(); }}
             onCancel={() => changeOpen(false)} />
         ) : students?.length === 0 ? (

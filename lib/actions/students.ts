@@ -1,16 +1,17 @@
 "use server";
 
-import { addDays, addMinutes, format, getISODay, parse } from "date-fns";
+import { addMinutes, format, parse } from "date-fns";
 import { id } from "date-fns/locale";
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { actionError, fail, ok } from "@/lib/actions/helpers";
-import { studentSchema } from "@/lib/validations/student";
+import { studentSchema, studentIdentitySchema } from "@/lib/validations/student";
 import { parseAmount } from "@/lib/utils/currency";
 import { DELETE_STUDENT_CONFIRMATION } from "@/lib/constants";
 import type { ActionResult } from "@/lib/actions/helpers";
 import { DUPLICATE_STUDENT_MESSAGE, isDuplicateStudentError } from "@/lib/utils/student-name";
+import { buildBillingSchedule } from "@/lib/utils/billing-schedule";
 
 function clean(v: string): string | null {
   const t = v.trim();
@@ -53,14 +54,6 @@ async function replaceSubjects(
   if (error) throw new Error("Gagal menyimpan mata pelajaran: " + error.message);
 }
 
-/** Jatuh tempo bulan ini dengan clamp hari (mis. due day 31 → 30 di bulan April). */
-function monthlyDueDate(dueDay: number): string {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const day = Math.min(dueDay, lastDay);
-  return format(new Date(now.getFullYear(), now.getMonth(), day), "yyyy-MM-dd");
-}
-
 /**
  * Tagihan otomatis sesuai sistem pembayaran siswa.
  * package → RPC create_package (paket + invoice); monthly/per_session → RPC create_invoice.
@@ -71,50 +64,34 @@ async function createBillingInvoice(
   supabase: Awaited<ReturnType<typeof createClient>>,
   d: ReturnType<typeof studentSchema.parse>,
   studentId: string,
-  dueDate?: string
-): Promise<string | null> {
+  dueDate: string
+): Promise<{ invoiceId: string | null; packageId: string | null }> {
   if (d.billing_type === "package") {
-    const startDate =
-      dueDate || d.package_start_date || format(new Date(), "yyyy-MM-dd");
     const { data, error } = await supabase.rpc("create_package", {
       p_student_id: studentId,
       p_total_sessions: Number(d.package_sessions),
       p_per_session_rate: parseAmount(d.package_per_session_rate),
       p_price: parseAmount(d.package_price),
-      p_start_date: startDate,
+      p_start_date: dueDate,
     });
     if (error) throw error;
-    const result = data as unknown as { invoice_id: string | null };
-    return result.invoice_id ?? null;
+    const result = data as unknown as { invoice_id: string | null; package_id: string | null };
+    return { invoiceId: result.invoice_id ?? null, packageId: result.package_id ?? null };
   }
 
   if (d.billing_type === "monthly") {
     const { data, error } = await supabase.rpc("create_invoice", {
       p_student_id: studentId,
       p_type: "monthly",
-      p_period_label: format(new Date(), "MMMM yyyy", { locale: id }),
+      p_period_label: format(parse(dueDate, "yyyy-MM-dd", new Date()), "MMMM yyyy", { locale: id }),
       p_amount: parseAmount(d.monthly_fee),
-      p_due_date: monthlyDueDate(Number(d.monthly_due_day)),
+      p_due_date: dueDate,
     });
     if (error) throw error;
-    return (data as unknown as { invoice_id: string }).invoice_id;
+    return { invoiceId: (data as unknown as { invoice_id: string }).invoice_id, packageId: null };
   }
 
-  return null;
-}
-
-/** Jatuh tempo berikutnya (due day di-clamp ke panjang bulan). */
-function nextMonthlyDueDate(dueDay: number, tz: string): Date {
-  const now = toZonedTime(new Date(), tz);
-  const tomorrow = addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), 1);
-  const mk = (y: number, m: number) => {
-    const last = new Date(y, m + 1, 0).getDate();
-    return new Date(y, m, Math.min(dueDay, last));
-  };
-  const thisMonth = mk(now.getFullYear(), now.getMonth());
-  return thisMonth >= tomorrow
-    ? thisMonth
-    : mk(now.getFullYear(), now.getMonth() + 1);
+  return { invoiceId: null, packageId: null };
 }
 
 /**
@@ -130,14 +107,10 @@ async function computeScheduleDates(
   d: ReturnType<typeof studentSchema.parse>
 ): Promise<{
   dates: Array<{ date: string; time: string }>;
+  dueDate: string;
   tz: string;
   durationMinutes: number;
 }> {
-  const timeByDay = new Map(d.schedule_times.map((t) => [t.day, t.start_time]));
-  if (timeByDay.size === 0) {
-    return { dates: [], tz: "Asia/Jakarta", durationMinutes: 90 };
-  }
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("timezone")
@@ -153,47 +126,7 @@ async function computeScheduleDates(
     .single();
   const durationMinutes = settings?.default_duration_minutes ?? 90;
 
-  const dates: Array<{ date: string; time: string }> = [];
-  const now = toZonedTime(new Date(), tz);
-
-  let cursor: Date;
-  if (d.schedule_start_date) {
-    // Mulai dari tanggal yang dipilih — boleh lampau; pertemuan lewat ditandai completed.
-    cursor = parse(d.schedule_start_date, "yyyy-MM-dd", new Date());
-  } else {
-    // Perilaku lama: sertakan hari ini hanya jika hari terpilih dan jam mulai belum lewat.
-    const isoDay = getISODay(now);
-    const todayIncluded = timeByDay.has(isoDay) && format(now, "HH:mm") < timeByDay.get(isoDay)!;
-    cursor = todayIncluded ? now : addDays(now, 1);
-  }
-
-  if (d.billing_type === "package") {
-    const total = Number(d.package_sessions);
-    while (dates.length < total) {
-      const isoDay = getISODay(cursor);
-      const time = timeByDay.get(isoDay);
-      if (time) {
-        dates.push({ date: format(cursor, "yyyy-MM-dd"), time });
-      }
-      cursor = addDays(cursor, 1);
-    }
-  } else if (d.billing_type === "monthly") {
-    const due = toZonedTime(nextMonthlyDueDate(Number(d.monthly_due_day), tz), tz);
-    const dueKey = format(due, "yyyy-MM-dd");
-    // Maksimal 2 bulan iterasi sebagai pengaman
-    let guard = 0;
-    while (format(cursor, "yyyy-MM-dd") <= dueKey && guard < 90) {
-      const isoDay = getISODay(cursor);
-      const time = timeByDay.get(isoDay);
-      if (time) {
-        dates.push({ date: format(cursor, "yyyy-MM-dd"), time });
-      }
-      cursor = addDays(cursor, 1);
-      guard += 1;
-    }
-  }
-
-  return { dates, tz, durationMinutes };
+  return { ...buildBillingSchedule(d, tz), tz, durationMinutes };
 }
 
 /**
@@ -205,7 +138,9 @@ async function createInitialSchedule(
   userId: string,
   studentId: string,
   d: ReturnType<typeof studentSchema.parse>,
-  computed?: Awaited<ReturnType<typeof computeScheduleDates>>
+  computed?: Awaited<ReturnType<typeof computeScheduleDates>>,
+  preserveExisting = false,
+  packageId: string | null = null
 ): Promise<void> {
   const { dates, tz, durationMinutes } =
     computed ?? (await computeScheduleDates(supabase, userId, d));
@@ -218,6 +153,7 @@ async function createInitialSchedule(
     return {
       user_id: userId,
       student_id: studentId,
+      package_id: packageId,
       subject_id: d.subject_ids[0]!,
       start_at: fromZonedTime(startLocal, tz).toISOString(),
       end_at: fromZonedTime(endLocal, tz).toISOString(),
@@ -227,8 +163,40 @@ async function createInitialSchedule(
     };
   });
 
-  const { error } = await supabase.from("schedules").insert(rows);
+  let newRows = rows;
+  if (preserveExisting) {
+    // Menambah paket tidak mengganti jadwal paket lain, termasuk yang sudah selesai/dibatalkan.
+    const existingStarts = new Set<string>();
+    const batchSize = 500;
+    for (let offset = 0; ; offset += batchSize) {
+      const { data, error } = await supabase.from("schedules")
+        .select("start_at")
+        .eq("user_id", userId).eq("student_id", studentId)
+        .gte("start_at", rows[0].start_at).lte("start_at", rows.at(-1)!.start_at)
+        .order("start_at").order("id").range(offset, offset + batchSize - 1);
+      if (error) throw new Error("Gagal memeriksa jadwal yang sudah ada: " + error.message);
+      for (const row of data ?? []) existingStarts.add(new Date(row.start_at).toISOString());
+      if (!data || data.length < batchSize) break;
+    }
+    newRows = rows.filter((row) => !existingStarts.has(row.start_at));
+    if (newRows.length === 0) return;
+  }
+  const { error } = await supabase.from("schedules").insert(newRows);
   if (error) throw new Error("Gagal membuat jadwal: " + error.message);
+}
+
+async function savePackageSettings(
+  supabase: Awaited<ReturnType<typeof createClient>>, userId: string, packageId: string | null,
+  d: ReturnType<typeof studentSchema.parse>, schedule: Awaited<ReturnType<typeof computeScheduleDates>>,
+) {
+  if (!packageId) return;
+  const { error } = await supabase.from("student_packages").update({ form_settings: {
+    learning_mode: d.learning_mode, subject_ids: d.subject_ids,
+    schedule_start_date: d.schedule_start_date || schedule.dates[0]?.date || schedule.dueDate,
+    schedule_times: d.schedule_times, schedule_location: d.schedule_location,
+    duration_minutes: schedule.durationMinutes,
+  } }).eq("id", packageId).eq("user_id", userId);
+  if (error) throw new Error("Gagal menyimpan data paket: " + error.message);
 }
 
 export async function createStudentAction(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -278,16 +246,13 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
 
     // Jadwal (opsional) dihitung dulu — hari terakhir jadwal menjadi tenggat bayar paket.
     const schedule = await computeScheduleDates(supabase, user.id, d);
-    const dueDate =
-      schedule.dates.length > 0
-        ? schedule.dates[schedule.dates.length - 1].date
-        : "";
 
     // Tagihan otomatis sesuai sistem pembayaran
-    await createBillingInvoice(supabase, d, student.id, dueDate);
+    const billing = await createBillingInvoice(supabase, d, student.id, schedule.dueDate);
+    await savePackageSettings(supabase, user.id, billing.packageId, d, schedule);
 
     // Jadwal (opsional) — banyaknya mengikuti sistem pembayaran
-    await createInitialSchedule(supabase, user.id, student.id, d, schedule);
+    await createInitialSchedule(supabase, user.id, student.id, d, schedule, false, billing.packageId);
 
     revalidatePath("/", "layout");
     return ok({ id: student.id });
@@ -296,43 +261,11 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
   }
 }
 
-/** Pola jadwal mendatang siswa: hari → jam mulai, tanggal mulai, lokasi, dan jumlahnya. */
-async function upcomingScheduleSnapshot(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  studentId: string,
-  tz: string
-): Promise<{
-  byDay: Map<number, string>;
-  firstDate: string | null;
-  location: string | null;
-  count: number;
-}> {
-  const { data: scheds } = await supabase
-    .from("schedules")
-    .select("start_at, location")
-    .eq("user_id", userId)
-    .eq("student_id", studentId)
-    .eq("status", "scheduled")
-    .order("start_at");
-  const byDay = new Map<number, string>();
-  let firstDate: string | null = null;
-  let location: string | null = null;
-  for (const s of scheds ?? []) {
-    const local = toZonedTime(s.start_at, tz);
-    const day = getISODay(local);
-    if (!byDay.has(day)) byDay.set(day, format(local, "HH:mm"));
-    if (firstDate === null) firstDate = format(local, "yyyy-MM-dd");
-    if (location === null) location = s.location;
-  }
-  return { byDay, firstDate, location, count: (scheds ?? []).length };
-}
-
 export async function updateStudentAction(
   studentId: string,
   input: unknown
 ): Promise<ActionResult> {
-  const parsed = studentSchema.safeParse(input);
+  const parsed = studentIdentitySchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
   const d = parsed.data;
 
@@ -343,6 +276,9 @@ export async function updateStudentAction(
   if (!user) return fail("Tidak terautentikasi.");
 
   try {
+    const { data: student } = await supabase.from("students").select("id")
+      .eq("id", studentId).eq("user_id", user.id).is("deleted_at", null).maybeSingle();
+    if (!student) return fail("Siswa tidak ditemukan.");
     const { data: duplicate, error: duplicateError } = await supabase.rpc("student_name_conflicts", {
       p_name: d.full_name, p_student_id: studentId,
     });
@@ -363,51 +299,9 @@ export async function updateStudentAction(
         phone: clean(d.phone),
         address: clean(d.address),
         notes: clean(d.notes),
-        learning_mode: d.learning_mode,
-        billing_type: d.billing_type,
-        per_session_rate:
-          d.billing_type === "per_session" ? String(parseAmount(d.per_session_rate)) : null,
-        monthly_fee: d.billing_type === "monthly" ? String(parseAmount(d.monthly_fee)) : null,
-        monthly_due_day: d.billing_type === "monthly" ? Number(d.monthly_due_day) : null,
-        status: d.status,
       })
-      .eq("id", studentId);
+      .eq("id", studentId).eq("user_id", user.id).is("deleted_at", null);
     if (error) throw error;
-
-    await replaceSubjects(supabase, user.id, studentId, d.subject_ids);
-
-    // Jadwal: ganti jadwal mendatang hanya jika pola hari/jam, tanggal mulai, atau lokasi berubah.
-    if (d.schedule_times.length > 0) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", user.id)
-        .single();
-      const tz = profile?.timezone ?? "Asia/Jakarta";
-      const snap = await upcomingScheduleSnapshot(supabase, user.id, studentId, tz);
-
-      const sameTimes =
-        snap.byDay.size === d.schedule_times.length &&
-        d.schedule_times.every((t) => snap.byDay.get(t.day) === t.start_time);
-      const sameStart =
-        !d.schedule_start_date ||
-        snap.firstDate === null ||
-        snap.firstDate === d.schedule_start_date;
-      const sameLocation = clean(d.schedule_location) === snap.location;
-
-      if (!(sameTimes && sameStart && sameLocation)) {
-        const hasValidCount =
-          d.billing_type !== "package" || Number(d.package_sessions) > 0;
-        if (hasValidCount) {
-          await supabase
-            .from("schedules")
-            .delete()
-            .eq("student_id", studentId)
-            .eq("status", "scheduled");
-          await createInitialSchedule(supabase, user.id, studentId, d);
-        }
-      }
-    }
 
     revalidatePath("/", "layout");
     return ok();
@@ -418,7 +312,7 @@ export async function updateStudentAction(
 
 /**
  * Tambah paket dari halaman Murid: perbarui pembelajaran/pembayaran
- * siswa, buat paket + tagihan, dan buat ulang jadwal bila polanya berubah.
+ * siswa, buat paket + tagihan, dan tambahkan jadwal paket tanpa menghapus jadwal lain.
  * Identitas siswa diambil dari database — form hanya berisi 3 bagian.
  */
 export async function addPackageAction(
@@ -480,46 +374,12 @@ export async function addPackageAction(
 
     // Jadwal (opsional) dihitung dulu — hari terakhir jadwal menjadi tenggat bayar paket.
     const schedule = await computeScheduleDates(supabase, user.id, d);
-    const dueDate =
-      schedule.dates.length > 0
-        ? schedule.dates[schedule.dates.length - 1].date
-        : "";
 
     // Paket + tagihan otomatis sesuai sistem pembayaran.
-    await createBillingInvoice(supabase, d, studentId, dueDate);
+    const billing = await createBillingInvoice(supabase, d, studentId, schedule.dueDate);
+    await savePackageSettings(supabase, user.id, billing.packageId, d, schedule);
 
-    // Buat ulang jadwal mendatang bila pola berubah atau jumlahnya tidak sesuai paket.
-    if (d.schedule_times.length > 0) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", user.id)
-        .single();
-      const tz = profile?.timezone ?? "Asia/Jakarta";
-      const snap = await upcomingScheduleSnapshot(supabase, user.id, studentId, tz);
-
-      const sameTimes =
-        snap.byDay.size === d.schedule_times.length &&
-        d.schedule_times.every((t) => snap.byDay.get(t.day) === t.start_time);
-      const sameStart =
-        !d.schedule_start_date ||
-        snap.firstDate === null ||
-        snap.firstDate === d.schedule_start_date;
-      const sameLocation = clean(d.schedule_location) === snap.location;
-      const sameCount =
-        d.billing_type !== "package" || snap.count === Number(d.package_sessions);
-
-      if (!(sameTimes && sameStart && sameLocation && sameCount)) {
-        if (d.billing_type !== "package" || Number(d.package_sessions) > 0) {
-          await supabase
-            .from("schedules")
-            .delete()
-            .eq("student_id", studentId)
-            .eq("status", "scheduled");
-          await createInitialSchedule(supabase, user.id, studentId, d, schedule);
-        }
-      }
-    }
+    await createInitialSchedule(supabase, user.id, studentId, d, schedule, true, billing.packageId);
 
     revalidatePath("/", "layout");
     return ok();

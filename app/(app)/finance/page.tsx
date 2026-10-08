@@ -21,23 +21,14 @@ import {
   aggregateMonthly,
   MONTH_KEY_RE,
   monthLabel,
-  type MonthlyInvoice,
+  paymentMonthKey,
 } from "@/lib/finance/queries";
+import { loadBillingLedger } from "@/lib/finance/data";
 import { PAYMENT_METHODS, PAYMENT_TYPES } from "@/lib/constants";
 import { toDateInput, todayInTz } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Keuangan" };
-
-type PaymentRow = {
-  payment_date: string;
-  amount: string;
-  student_id: string;
-  type: string;
-  method: string;
-  notes: string | null;
-  students: { full_name: string } | null;
-};
 
 export default async function FinancePage({
   searchParams,
@@ -59,34 +50,16 @@ export default async function FinancePage({
   const todayMonth = toDateInput(todayInTz(tz), tz).slice(0, 7);
   const nowYear = todayMonth.slice(0, 4);
 
-  // Rentang tahun yang tersedia berdasarkan data pembayaran & tagihan (selalu memuat tahun berjalan).
-  const [{ data: oldestPayment }, { data: newestPayment }, invoiceEstimates] =
-    await Promise.all([
-      supabase
-        .from("payments")
-        .select("payment_date")
-        .eq("user_id", user!.id)
-        .order("payment_date")
-        .limit(1),
-      supabase
-        .from("payments")
-        .select("payment_date")
-        .eq("user_id", user!.id)
-        .order("payment_date", { ascending: false })
-        .limit(1),
-      loadInvoiceEstimates(supabase, user!.id, tz),
-    ]);
-  const invoiceYears = Array.from(invoiceEstimates.keys(), (key) => Number(key.slice(0, 4)));
-  const minYear = Math.min(
-    Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
-    ...invoiceYears,
-    Number(nowYear)
+  const { invoices, payments: rows } = await loadBillingLedger(supabase, user!.id);
+  const invoiceEstimates = aggregateInvoiceMonthly(invoices, tz);
+  const aggregates = aggregateMonthly(rows);
+  // Estimasi mengikuti jatuh tempo; pendapatan mengikuti tanggal pembayaran, termasuk lintas tahun.
+  const billingYears = Array.from(
+    new Set([...invoiceEstimates.keys(), ...aggregates.keys()]),
+    (key) => Number(key.slice(0, 4))
   );
-  const maxYear = Math.max(
-    Number((newestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
-    ...invoiceYears,
-    Number(nowYear)
-  );
+  const minYear = Math.min(...billingYears, Number(nowYear));
+  const maxYear = Math.max(...billingYears, Number(nowYear));
   const years: string[] = [];
   for (let y = maxYear; y >= minYear; y--) years.push(String(y));
 
@@ -101,23 +74,13 @@ export default async function FinancePage({
         ? todayMonth
         : `${year}-01`;
 
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("payment_date, amount, student_id, type, method, notes, students(full_name)")
-    .eq("user_id", user!.id)
-    .gte("payment_date", `${year}-01-01`)
-    .lte("payment_date", `${year}-12-31`)
-    .order("payment_date")
-    .limit(2000);
-
-  const rows = (payments ?? []) as unknown as PaymentRow[];
-  const aggregates = aggregateMonthly(rows);
   const selected = aggregates.get(month) ?? {
     total: 0,
     count: 0,
     students: new Set<string>(),
   };
-  const selectedPayments = rows.filter((p) => p.payment_date.startsWith(month));
+  const selectedPayments = rows.filter((p) => paymentMonthKey(p) === month)
+    .sort((a, b) => a.payment_date.localeCompare(b.payment_date) || a.id.localeCompare(b.id));
   const label = monthLabel(month);
   const monthKeys = Array.from(
     { length: 12 },
@@ -201,7 +164,7 @@ export default async function FinancePage({
             </TableHeader>
             <TableBody>
               {selectedPayments.map((p) => (
-                <TableRow key={`${p.payment_date}-${p.student_id}-${p.amount}`}>
+                <TableRow key={p.id}>
                   <TableCell>
                     <DateText value={p.payment_date} tz={tz} />
                   </TableCell>
@@ -229,23 +192,4 @@ export default async function FinancePage({
       )}
     </div>
   );
-}
-
-/** Include backdated/future due dates in the year picker, even when created in another year. */
-async function loadInvoiceEstimates(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  timezone: string
-): Promise<Map<string, number>> {
-  const invoices: MonthlyInvoice[] = [];
-  const batchSize = 500;
-  for (let offset = 0; ; offset += batchSize) {
-    const { data, error } = await supabase.from("invoices")
-      .select("amount, created_at, due_date").eq("user_id", userId)
-      .order("id").range(offset, offset + batchSize - 1);
-    if (error) throw new Error("Estimasi pendapatan belum dapat dimuat. Silakan coba lagi.");
-    invoices.push(...(data ?? []));
-    if (!data || data.length < batchSize) break;
-  }
-  return aggregateInvoiceMonthly(invoices, timezone);
 }

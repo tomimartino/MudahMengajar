@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { createStudentAction, updateStudentAction, addPackageAction } from "@/lib/actions/students";
+import { updatePackageAction } from "@/lib/actions/package-edit";
 import {
   studentSchema,
   packageFormSchema,
+  studentIdentitySchema,
   type StudentInput,
 } from "@/lib/validations/student";
 import {
@@ -22,6 +24,10 @@ import {
 } from "@/lib/constants";
 import { formatRupiah, parseAmount } from "@/lib/utils/currency";
 import { toDateInput } from "@/lib/utils/date";
+import { buildBillingSchedule } from "@/lib/utils/billing-schedule";
+import { editedPackageDueDate, type PackageScheduleContext } from "@/lib/utils/package-edit-schedule";
+import { format, parseISO } from "date-fns";
+import { id } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -88,6 +94,7 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={selected}
       className={cn(
         "rounded-full border px-3 py-1.5 text-sm transition-colors",
         selected
@@ -106,7 +113,10 @@ export function StudentForm({
   schoolLevels,
   defaultLearningMode,
   defaultDurationMinutes,
+  timezone = "Asia/Jakarta",
   mode = "full",
+  packageId,
+  packageSchedule,
   onSuccess,
   onCancel,
 }: {
@@ -115,14 +125,20 @@ export function StudentForm({
   schoolLevels?: SchoolLevel[];
   defaultLearningMode?: "offline" | "online" | "hybrid";
   defaultDurationMinutes?: number;
-  mode?: "full" | "package";
+  timezone?: string;
+  mode?: "full" | "identity" | "package" | "package-edit";
+  packageId?: string;
+  packageSchedule?: PackageScheduleContext;
   onSuccess?: () => void;
   onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const isEdit = !!initial?.id;
-  const isPackageMode = mode === "package";
+  const isPackageEdit = mode === "package-edit";
+  const isPackageMode = mode === "package" || isPackageEdit;
+  const isIdentityMode = mode === "identity";
+  const initialStartDate = initial?.schedule_start_date ?? initial?.package_start_date ?? toDateInput(new Date(), timezone);
 
   // Jenjang hanya yang diajar guru; sertakan jenjang lama siswa saat edit.
   const allowedLevels: SchoolLevel[] = [
@@ -134,7 +150,7 @@ export function StudentForm({
   }
 
   const form = useForm<StudentInput>({
-    resolver: (isPackageMode
+    resolver: (isIdentityMode ? zodResolver(studentIdentitySchema) : isPackageMode
       ? zodResolver(packageFormSchema)
       : zodResolver(studentSchema)) as unknown as Resolver<StudentInput>,
     defaultValues: {
@@ -169,12 +185,12 @@ export function StudentForm({
       package_price: initial?.package_price
         ? formatRupiah(initial.package_price, { withSymbol: false })
         : "",
-      package_start_date: initial?.package_start_date ?? toDateInput(new Date()),
+      package_start_date: initialStartDate,
       subject_ids: initial?.subject_ids ?? [],
       status: (initial?.status as "active" | "inactive") ?? "active",
       schedule_times: initial?.schedule_times ?? [],
       schedule_location: initial?.schedule_location ?? "",
-      schedule_start_date: initial?.schedule_start_date ?? toDateInput(new Date()),
+      schedule_start_date: initialStartDate,
     },
   });
 
@@ -184,6 +200,17 @@ export function StudentForm({
   const scheduleTimes = form.watch("schedule_times") ?? [];
   const packageSessions = form.watch("package_sessions");
   const packageRate = form.watch("package_per_session_rate");
+  const previousPriceInputs = useRef({ sessions: initial?.package_sessions ? String(initial.package_sessions) : "",
+    rate: initial?.package_per_session_rate ? formatRupiah(initial.package_per_session_rate, { withSymbol: false }) : "" });
+  const scheduleStartDate = form.watch("schedule_start_date");
+  const monthlyDueDay = form.watch("monthly_due_day");
+  const billingPreview = isPackageEdit && packageSchedule && scheduleStartDate
+    ? { dueDate: editedPackageDueDate(packageSchedule, Number(packageSessions), scheduleStartDate, scheduleTimes, timezone) }
+    : (!isEdit || isPackageMode) && scheduleStartDate
+    ? buildBillingSchedule({ billing_type: billingType, package_sessions: packageSessions,
+      package_start_date: scheduleStartDate, schedule_start_date: scheduleStartDate,
+      monthly_due_day: monthlyDueDay, schedule_times: scheduleTimes }, timezone)
+    : null;
 
   // Jam mulai berbeda tiap hari (checklist) vs satu jam untuk semua hari.
   const initialScheduleTimes = initial?.schedule_times ?? [];
@@ -215,6 +242,8 @@ export function StudentForm({
 
   // Harga paket otomatis = tarif per pertemuan × jumlah pertemuan.
   useEffect(() => {
+    if (isPackageEdit && previousPriceInputs.current.sessions === packageSessions && previousPriceInputs.current.rate === packageRate) return;
+    previousPriceInputs.current = { sessions: packageSessions, rate: packageRate };
     const sessions = Number(packageSessions);
     const rate = parseAmount(packageRate);
     const total =
@@ -224,7 +253,7 @@ export function StudentForm({
       total > 0 ? formatRupiah(total, { withSymbol: false }) : "",
       { shouldValidate: true }
     );
-  }, [packageSessions, packageRate, form]);
+  }, [packageSessions, packageRate, form, isPackageEdit]);
 
   function toggleScheduleDay(day: number) {
     const exists = scheduleTimes.some((t) => t.day === day);
@@ -250,16 +279,23 @@ export function StudentForm({
   }
 
   async function onSubmit(values: StudentInput) {
+    values = { ...values, package_start_date: values.schedule_start_date };
     setPending(true);
     let result: ActionResult;
-    if (isPackageMode) {
+    try {
+    if (isPackageEdit) {
+      result = await updatePackageAction(initial!.id!, packageId!, values);
+    } else if (isPackageMode) {
       result = await addPackageAction(initial!.id!, values);
     } else if (isEdit) {
       result = await updateStudentAction(initial!.id!, values);
     } else {
       result = await createStudentAction(values);
     }
-    setPending(false);
+    } catch {
+      toast.error("Data belum dapat disimpan. Silakan coba lagi.");
+      return;
+    } finally { setPending(false); }
 
     if (!result.ok) {
       if (!isPackageMode && result.error === DUPLICATE_STUDENT_MESSAGE) {
@@ -269,7 +305,7 @@ export function StudentForm({
       return;
     }
     if (isPackageMode) {
-      toast.success("Paket berhasil ditambahkan.");
+      toast.success(isPackageEdit ? "Paket berhasil diperbarui." : "Paket berhasil ditambahkan.");
       onSuccess?.();
       return;
     }
@@ -488,6 +524,7 @@ export function StudentForm({
         </section>
         )}
 
+        {!isIdentityMode && <>
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">PEMBELAJARAN</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -515,7 +552,7 @@ export function StudentForm({
                 </FormItem>
               )}
             />
-            <FormField
+            {!isPackageEdit && <FormField
               control={form.control}
               name="status"
               render={({ field }) => (
@@ -535,7 +572,7 @@ export function StudentForm({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            />}
           </div>
           <div className="mt-4 space-y-2">
             <FormLabel>Mata pelajaran *</FormLabel>
@@ -569,6 +606,7 @@ export function StudentForm({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
+                  disabled={isPackageEdit}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -762,7 +800,10 @@ export function StudentForm({
                   <FormItem>
                     <FormLabel>Tanggal mulai jadwal</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} onChange={(event) => {
+                        field.onChange(event);
+                        form.setValue("package_start_date", event.target.value);
+                      }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -787,10 +828,17 @@ export function StudentForm({
                 Durasi pertemuan: {defaultDurationMinutes} menit
               </p>
             )}
+            {billingPreview?.dueDate && (
+              <dl className="flex flex-wrap justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm" aria-live="polite">
+                <dt className="text-muted-foreground">Jatuh tempo tagihan</dt>
+                <dd className="font-medium">{format(parseISO(billingPreview.dueDate), "d MMMM yyyy", { locale: id })}</dd>
+              </dl>
+            )}
           </div>
         </section>
 
-        {!isPackageMode && (
+        </>}
+        {!isPackageMode && !isIdentityMode && (
         <section className="rounded-xl border bg-card p-5">
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground">CATATAN</h2>
           <FormField
@@ -810,11 +858,11 @@ export function StudentForm({
         )}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => (isPackageMode ? onCancel?.() : router.back())}>
+          <Button type="button" variant="outline" disabled={pending} onClick={() => (isPackageMode ? onCancel?.() : router.back())}>
             Batal
           </Button>
           <SubmitButton pending={pending} loadingText="Menyimpan...">
-            {isPackageMode ? "Simpan Paket" : isEdit ? "Simpan Perubahan" : "Tambah Siswa"}
+            {isPackageEdit ? "Simpan Perubahan" : isPackageMode ? "Simpan Paket" : isEdit ? "Simpan Perubahan" : "Tambah Siswa"}
           </SubmitButton>
         </div>
       </form>

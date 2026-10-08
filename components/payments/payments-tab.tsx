@@ -1,6 +1,7 @@
 import { ReceiptText, Wallet } from "lucide-react";
-import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
+import { loadBillingLedger } from "@/lib/finance/data";
+import { invoiceMonthKey, MONTH_KEY_RE, paymentMonthKey } from "@/lib/finance/queries";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -46,14 +47,10 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
   const todayMonth = today.slice(0, 7);
 
   // Bulan terpilih (default bulan berjalan); filter tagihan & transaksi sesuai bulan.
-  const selectedMonth =
-    typeof month === "string" && /^\d{4}-\d{2}$/.test(month) ? month : todayMonth;
-  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
-  const monthStart = `${selectedMonth}-01`;
-  const monthEnd = format(new Date(selYear, selMonthNum, 0), "yyyy-MM-dd");
-  const nextMonthStart = format(new Date(selYear, selMonthNum, 1), "yyyy-MM-dd");
+  const selectedMonth = typeof month === "string" && MONTH_KEY_RE.test(month) ? month : todayMonth;
+  const selYear = Number(selectedMonth.slice(0, 4));
 
-  const [{ data: students }, { data: invoices }, { data: payments }, { data: invoicePayments }, { data: oldestPayment }, { data: oldestInvoice }] =
+  const [{ data: students }, ledger] =
     await Promise.all([
       supabase
         .from("students")
@@ -61,64 +58,33 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .order("full_name"),
-      supabase
-        .from("invoices")
-        .select("*, students(full_name)")
-        .eq("user_id", user!.id)
-        .gte("created_at", monthStart)
-        .lt("created_at", nextMonthStart)
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase
-        .from("payments")
-        .select("*, students(full_name)")
-        .eq("user_id", user!.id)
-        .gte("payment_date", monthStart)
-        .lte("payment_date", monthEnd)
-        .order("payment_date", { ascending: false })
-        .limit(200),
-      supabase
-        .from("payments")
-        .select("invoice_id, amount")
-        .eq("user_id", user!.id)
-        .not("invoice_id", "is", null)
-        .limit(2000),
-      supabase
-        .from("payments")
-        .select("payment_date")
-        .eq("user_id", user!.id)
-        .order("payment_date")
-        .limit(1),
-      supabase
-        .from("invoices")
-        .select("created_at")
-        .eq("user_id", user!.id)
-        .order("created_at")
-        .limit(1),
+      loadBillingLedger(supabase, user!.id),
     ]);
 
-  // Daftar tahun untuk filter: dari data tertua sampai tahun berjalan.
-  const minYear = Math.min(
-    Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
-    Number((oldestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
-    selYear
-  );
+  // Tagihan mengikuti jatuh tempo; transaksi mengikuti tanggal pembayaran yang dipilih guru.
+  const invoices = ledger.invoices.filter((i) => invoiceMonthKey(i, tz) === selectedMonth)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+  const payments = ledger.payments.filter((p) => paymentMonthKey(p) === selectedMonth)
+    .sort((a, b) => b.payment_date.localeCompare(a.payment_date) || b.id.localeCompare(a.id));
+  const billingYears = [
+    ...ledger.invoices.map((i) => Number(invoiceMonthKey(i, tz).slice(0, 4))),
+    ...ledger.payments.map((p) => Number(paymentMonthKey(p).slice(0, 4))),
+  ];
+  const minYear = Math.min(...billingYears, Number(todayMonth.slice(0, 4)), selYear);
+  const maxYear = Math.max(...billingYears, Number(todayMonth.slice(0, 4)), selYear);
   const years: string[] = [];
-  for (let y = selYear; y >= minYear; y--) years.push(String(y));
+  for (let y = maxYear; y >= minYear; y--) years.push(String(y));
 
   const paidByInvoice = new Map<string, number>();
-  for (const p of invoicePayments ?? []) {
+  for (const p of ledger.payments) {
     if (!p.invoice_id) continue;
     paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) ?? 0) + Number(p.amount));
   }
 
-  const invoiceList = (invoices ?? []).map((i) => {
-    const student = i.students as unknown as {
-      full_name: string;
-    };
+  const invoiceList = invoices.map((i) => {
     return {
       ...i,
-      student_name: student.full_name,
+      student_name: i.students?.full_name ?? "—",
       paid_amount: paidByInvoice.get(i.id) ?? 0,
     };
   });

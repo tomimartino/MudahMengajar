@@ -1,8 +1,13 @@
 import { z } from "zod";
 import { parseAmount } from "@/lib/utils/currency";
+import { format, isValid, parseISO } from "date-fns";
 
-const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.");
-const timeString = z.string().regex(/^\d{2}:\d{2}$/, "Format jam HH:mm.");
+const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.").refine((value) => {
+  const parsed = parseISO(value);
+  return isValid(parsed) && format(parsed, "yyyy-MM-dd") === value;
+}, "Tanggal tidak valid.");
+const optionalDate = z.union([z.literal(""), dateString]).optional().default("");
+const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format jam HH:mm.");
 const optionalText = z.string().optional().default("");
 
 type BillingScheduleValues = {
@@ -56,7 +61,7 @@ const billingScheduleRefinement: (v: BillingScheduleValues, ctx: z.RefinementCtx
   }
 };
 
-export const studentSchema = z
+const studentFields = z
   .object({
     full_name: z.string().trim().min(2, "Nama siswa wajib diisi."),
     gender: z.enum(["L", "P"]).optional().nullable(),
@@ -77,7 +82,7 @@ export const studentSchema = z
     package_sessions: z.string().optional().default(""),
     package_per_session_rate: z.string().optional().default(""),
     package_price: z.string().optional().default(""),
-    package_start_date: z.string().optional().default(""),
+    package_start_date: optionalDate,
     subject_ids: z.array(z.string().min(1)).min(1, "Pilih minimal satu mata pelajaran."),
     status: z.enum(["active", "inactive"]),
     // Jadwal (opsional — pilih hari, tiap hari bisa punya jam mulai sendiri)
@@ -87,8 +92,15 @@ export const studentSchema = z
       .default([]),
     schedule_location: optionalText,
     schedule_start_date: optionalText,
-  })
-  .superRefine(billingScheduleRefinement);
+  });
+
+export const studentSchema = studentFields.superRefine(billingScheduleRefinement);
+
+export const studentIdentitySchema = studentFields.pick({
+  full_name: true, gender: true, birth_date: true, school_name: true,
+  school_level: true, grade_level: true, phone: true, parent_name: true,
+  parent_whatsapp: true, address: true, notes: true,
+});
 
 export type StudentInput = z.infer<typeof studentSchema>;
 
@@ -106,7 +118,7 @@ export const packageFormSchema = z
     package_sessions: z.string().optional().default(""),
     package_per_session_rate: z.string().optional().default(""),
     package_price: z.string().optional().default(""),
-    package_start_date: z.string().optional().default(""),
+    package_start_date: optionalDate,
     subject_ids: z.array(z.string().min(1)).min(1, "Pilih minimal satu mata pelajaran."),
     status: z.enum(["active", "inactive"]),
     schedule_times: z

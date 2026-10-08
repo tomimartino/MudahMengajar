@@ -45,11 +45,7 @@ export function InvoiceStatusBadge({
   if (status === "paid") return <StatusBadge tone="green">Lunas</StatusBadge>;
   if (status === "partial") return <StatusBadge tone="yellow">Sebagian</StatusBadge>;
   const overdue = dueDate && today ? dueDate < today : false;
-  return overdue ? (
-    <StatusBadge tone="red">Jatuh Tempo</StatusBadge>
-  ) : (
-    <StatusBadge tone="yellow">Belum Bayar</StatusBadge>
-  );
+  return <StatusBadge tone={overdue ? "red" : "yellow"}>Belum Bayar</StatusBadge>;
 }
 
 export function ScheduleStatusBadge({

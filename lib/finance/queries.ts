@@ -15,13 +15,18 @@ export interface MonthAggregate {
 }
 
 /** Pola "YYYY-MM" untuk parameter bulan di URL. */
-export const MONTH_KEY_RE = /^\d{4}-\d{2}$/;
+export const MONTH_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-/** Agregat pembayaran per bulan, dikunci "YYYY-MM" (kolom payment_date adalah date murni). */
+/** Transaksi dan pendapatan mengikuti tanggal kalender yang dipilih saat mencatat pembayaran. */
+export function paymentMonthKey(payment: Pick<MonthlyPayment, "payment_date">): string {
+  return payment.payment_date.slice(0, 7);
+}
+
+/** Pendapatan yang sudah diterima dikelompokkan ke bulan tanggal pembayaran. */
 export function aggregateMonthly(payments: MonthlyPayment[]): Map<string, MonthAggregate> {
   const map = new Map<string, MonthAggregate>();
   for (const p of payments) {
-    const key = p.payment_date.slice(0, 7);
+    const key = paymentMonthKey(p);
     const cur = map.get(key) ?? { total: 0, count: 0, students: new Set<string>() };
     cur.total += Number(p.amount);
     cur.count += 1;
