@@ -25,9 +25,6 @@ export default async function EmailVerifiedPage() {
             <BadgeCheck className="size-8 text-emerald-600" />
           </div>
           <h1 className="text-xl font-bold">Email berhasil diverifikasi</h1>
-          <p className="text-sm text-muted-foreground">
-            Akun Anda sudah aktif. Silakan lanjut untuk melengkapi data mengajar Anda.
-          </p>
           <Button asChild className="mt-2 w-full">
             <Link href={user ? "/dashboard" : "/login"}>
               {user ? "Lanjut ke Dashboard" : "Masuk ke Aplikasi"}

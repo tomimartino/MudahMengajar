@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.types";
+import type { AccountAccess } from "@/types/admin.types";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -9,6 +10,9 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/auth/callback",
   "/guru",
+  "/portal",
+  "/account-suspended",
+  "/maintenance",
 ];
 
 export async function updateSession(request: NextRequest) {
@@ -40,7 +44,16 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+  if(user&&!isPublic){
+    const {data,error}=await supabase.rpc("get_account_access");
+    const access=data as unknown as AccountAccess|null;
+    if(error||!access||access.status==="suspended"||(access.maintenance&&!access.role&&!pathname.startsWith("/admin"))){
+      const url=request.nextUrl.clone();url.pathname=access?.maintenance&&access.status!=="suspended"?"/maintenance":"/account-suspended";url.search="";
+      return NextResponse.redirect(url);
+    }
+  }
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -50,7 +63,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublic && pathname !== "/auth/callback") {
+  if (user && ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";

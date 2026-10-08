@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { Bell, CheckCheck, Inbox } from "lucide-react";
+import { Bell, BookOpen, CalendarClock, CheckCheck, Inbox } from "lucide-react";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/client";
@@ -25,17 +26,22 @@ import { cn } from "@/lib/utils";
 export function NotificationBell({ unreadCount }: { unreadCount: number }) {
   const [items, setItems] = useState<Notification[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const router = useRouter();
 
   const load = useCallback(async () => {
-    await refreshRemindersAction();
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    setItems(data ?? []);
+    setLoadError(false);
+    try {
+      const refreshed = await refreshRemindersAction();
+      if (!refreshed.ok) toast.error("Pengingat belum dapat diperbarui.");
+      const supabase = createClient();
+      const { data, error } = await supabase.from("notifications")
+        .select("*").order("created_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      setItems(data ?? []);
+    } catch {
+      setLoadError(true);
+    }
   }, []);
 
   function handleOpenChange(next: boolean) {
@@ -45,7 +51,8 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
 
   async function handleClick(item: Notification) {
     if (!item.read_at) {
-      await markNotificationReadAction(item.id);
+      const result = await markNotificationReadAction(item.id);
+      if (!result.ok) toast.error("Notifikasi belum dapat ditandai dibaca.");
     }
     setOpen(false);
     if (item.link) router.push(item.link);
@@ -53,7 +60,8 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
   }
 
   async function handleMarkAll() {
-    await markAllNotificationsReadAction();
+    const result = await markAllNotificationsReadAction();
+    if (!result.ok) { toast.error("Notifikasi belum dapat ditandai dibaca."); return; }
     setItems((prev) => (prev ?? []).map((n) => ({ ...n, read_at: new Date().toISOString() })));
     router.refresh();
   }
@@ -70,7 +78,7 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
         <div className="flex items-center justify-between px-1">
           <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
           {unreadCount > 0 && (
@@ -81,16 +89,20 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
         </div>
         <DropdownMenuSeparator />
         <div className="max-h-96 overflow-y-auto">
-          {items === null && (
+          {loadError && <div className="px-3 py-6 text-center">
+            <p role="alert" className="text-sm text-destructive">Notifikasi gagal dimuat.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => void load()}>Coba Lagi</Button>
+          </div>}
+          {!loadError && items === null && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">Memuat...</p>
           )}
-          {items !== null && items.length === 0 && (
+          {!loadError && items !== null && items.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
               <Inbox className="size-6 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Belum ada notifikasi.</p>
             </div>
           )}
-          {items?.map((item) => (
+          {!loadError && items?.map((item) => (
             <button
               key={item.id}
               onClick={() => void handleClick(item)}
@@ -100,6 +112,8 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
               )}
             >
               <p className={cn("text-sm", item.read_at ? "font-normal text-foreground" : "font-semibold text-foreground")}>
+                {item.type === "material_review" && <BookOpen aria-hidden="true" className="mr-1.5 inline size-3.5 text-primary" />}
+                {(item.type === "schedule_today" || item.type === "schedule_soon") && <CalendarClock aria-hidden="true" className="mr-1.5 inline size-3.5 text-primary" />}
                 {item.title}
               </p>
               {item.body && (

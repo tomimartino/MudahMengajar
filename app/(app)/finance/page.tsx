@@ -21,6 +21,7 @@ import {
   aggregateMonthly,
   MONTH_KEY_RE,
   monthLabel,
+  type MonthlyInvoice,
 } from "@/lib/finance/queries";
 import { PAYMENT_METHODS, PAYMENT_TYPES } from "@/lib/constants";
 import { toDateInput, todayInTz } from "@/lib/utils/date";
@@ -59,7 +60,7 @@ export default async function FinancePage({
   const nowYear = todayMonth.slice(0, 4);
 
   // Rentang tahun yang tersedia berdasarkan data pembayaran & tagihan (selalu memuat tahun berjalan).
-  const [{ data: oldestPayment }, { data: newestPayment }, { data: oldestInvoice }, { data: newestInvoice }] =
+  const [{ data: oldestPayment }, { data: newestPayment }, invoiceEstimates] =
     await Promise.all([
       supabase
         .from("payments")
@@ -73,27 +74,17 @@ export default async function FinancePage({
         .eq("user_id", user!.id)
         .order("payment_date", { ascending: false })
         .limit(1),
-      supabase
-        .from("invoices")
-        .select("created_at")
-        .eq("user_id", user!.id)
-        .order("created_at")
-        .limit(1),
-      supabase
-        .from("invoices")
-        .select("created_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(1),
+      loadInvoiceEstimates(supabase, user!.id, tz),
     ]);
+  const invoiceYears = Array.from(invoiceEstimates.keys(), (key) => Number(key.slice(0, 4)));
   const minYear = Math.min(
     Number((oldestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
-    Number((oldestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
+    ...invoiceYears,
     Number(nowYear)
   );
   const maxYear = Math.max(
     Number((newestPayment?.[0]?.payment_date ?? todayMonth).slice(0, 4)),
-    Number((newestInvoice?.[0]?.created_at ?? todayMonth).slice(0, 4)),
+    ...invoiceYears,
     Number(nowYear)
   );
   const years: string[] = [];
@@ -119,20 +110,8 @@ export default async function FinancePage({
     .order("payment_date")
     .limit(2000);
 
-  // Estimasi pendapatan: seluruh nominal tagihan tahun ini, sudah bayar maupun belum.
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("amount, created_at")
-    .eq("user_id", user!.id)
-    .gte("created_at", `${year}-01-01`)
-    .lte("created_at", `${year}-12-31`)
-    .limit(2000);
-
   const rows = (payments ?? []) as unknown as PaymentRow[];
   const aggregates = aggregateMonthly(rows);
-  const invoiceEstimates = aggregateInvoiceMonthly(
-    (invoices ?? []) as unknown as { created_at: string; amount: string }[]
-  );
   const selected = aggregates.get(month) ?? {
     total: 0,
     count: 0,
@@ -170,7 +149,7 @@ export default async function FinancePage({
       </div>
 
       <h2 className="mb-2 mt-8 flex items-center gap-2 text-base font-semibold">
-        <TrendingUp className="size-4 text-primary" /> Estimasi Pendapatan per Bulan
+        <Wallet className="size-4 text-primary" /> Pendapatan dan Estimasi per Bulan
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {monthKeys.map((k) => {
@@ -188,11 +167,12 @@ export default async function FinancePage({
               <p className={cn("text-sm font-semibold", isCurrent && "text-primary")}>
                 {monthLabel(k)}
               </p>
-              <p className="mt-2 text-xl font-bold tracking-tight">
-                <AmountText value={invoiceEstimates.get(k) ?? 0} />
+              <p className="mt-3 text-xs text-muted-foreground">Pendapatan</p>
+              <p className="mt-1 text-xl font-bold tracking-tight">
+                <AmountText value={a?.total ?? 0} />
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Pendapatan: <AmountText value={a?.total ?? 0} />
+              <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+                Estimasi: <AmountText value={invoiceEstimates.get(k) ?? 0} />
               </p>
             </Link>
           );
@@ -249,4 +229,23 @@ export default async function FinancePage({
       )}
     </div>
   );
+}
+
+/** Include backdated/future due dates in the year picker, even when created in another year. */
+async function loadInvoiceEstimates(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  timezone: string
+): Promise<Map<string, number>> {
+  const invoices: MonthlyInvoice[] = [];
+  const batchSize = 500;
+  for (let offset = 0; ; offset += batchSize) {
+    const { data, error } = await supabase.from("invoices")
+      .select("amount, created_at, due_date").eq("user_id", userId)
+      .order("id").range(offset, offset + batchSize - 1);
+    if (error) throw new Error("Estimasi pendapatan belum dapat dimuat. Silakan coba lagi.");
+    invoices.push(...(data ?? []));
+    if (!data || data.length < batchSize) break;
+  }
+  return aggregateInvoiceMonthly(invoices, timezone);
 }

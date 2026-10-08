@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LEARNING_MODES } from "@/lib/constants";
+import { PreviousSessionCard } from "@/components/schedule/previous-session-card";
 
 export interface ScheduleItem {
   id: string;
@@ -91,7 +92,7 @@ export function ScheduleDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {schedule.student_name}
@@ -129,29 +130,36 @@ export function ScheduleDetailDialog({
             </div>
           )}
           {schedule.notes && <p className="text-muted-foreground">{schedule.notes}</p>}
+          {open && schedule.status === "scheduled" && (
+            <PreviousSessionCard key={schedule.id} scheduleId={schedule.id} timezone={timezone} />
+          )}
 
           {switchOpen && (
             <div className="space-y-3 rounded-lg border p-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Tanggal</p>
+                  <label htmlFor="move-schedule-date" className="text-xs text-muted-foreground">Tanggal</label>
                   <Input
+                    id="move-schedule-date"
                     type="date"
                     value={switchDate}
+                    disabled={switchPending}
                     onChange={(e) => setSwitchDate(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Jam</p>
+                  <label htmlFor="move-schedule-time" className="text-xs text-muted-foreground">Jam</label>
                   <Input
+                    id="move-schedule-time"
                     type="time"
                     value={switchTime}
+                    disabled={switchPending}
                     onChange={(e) => setSwitchTime(e.target.value)}
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSwitchOpen(false)}>
+                <Button variant="outline" size="sm" disabled={switchPending} onClick={() => setSwitchOpen(false)}>
                   Batal
                 </Button>
                 <Button size="sm" disabled={switchPending} onClick={() => void handleSwitch()}>
@@ -199,11 +207,11 @@ export function ScheduleDetailDialog({
               <ExternalLink className="size-4" /> Profil Siswa
             </Link>
           </Button>
-          {schedule.status === "scheduled" && (
-            <>
+          {(schedule.status === "scheduled" || schedule.status === "completed") && (
               <Button
                 variant="outline"
                 size="sm"
+                disabled={switchPending}
                 onClick={() => {
                   setConfirmCancel(false);
                   setSwitchOpen(!switchOpen);
@@ -211,6 +219,8 @@ export function ScheduleDetailDialog({
               >
                 <ArrowLeftRight className="size-4" /> Pindah Jadwal
               </Button>
+          )}
+          {schedule.status === "scheduled" && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -221,7 +231,6 @@ export function ScheduleDetailDialog({
               >
                 <Ban className="size-4" /> Batalkan Jadwal
               </Button>
-            </>
           )}
         </div>
       </DialogContent>

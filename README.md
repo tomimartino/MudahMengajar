@@ -18,7 +18,7 @@ npx supabase link --project-ref <project-ref>
 npx supabase db push
 ```
 
-Atau tanpa CLI: buka **SQL Editor** di dashboard Supabase, jalankan isi `supabase/migrations/0001_init.sql` (membuat 14 tabel, RLS, trigger, dan 7 RPC).
+Atau tanpa CLI: buka **SQL Editor** di dashboard Supabase dan jalankan seluruh file `supabase/migrations/` sesuai urutan nama.
 
 4. (Opsional, hanya development) Isi data demo — Andi, Siti, Budi + jadwal, paket, tagihan, pembayaran:
 
@@ -88,7 +88,38 @@ types/            # Tipe database Supabase
 - **Keamanan:** RLS di semua tabel (`auth.uid() = user_id`); setiap RPC `SECURITY DEFINER` memverifikasi kepemilikan data di dalam transaksi.
 - **Transaksi lintas tabel** (selesai pertemuan → session + presensi + potong paket; pembayaran → update status tagihan) berjalan sebagai Postgres RPC — atomic dan anti-race.
 - **Agregat dashboard** dihitung dalam satu RPC (`get_dashboard_stats`), bukan di client.
-- **Reminder** dibuat oleh RPC `refresh_reminders()` saat bell notifikasi dibuka / setelah mutasi kunci — tanpa cron di MVP.
+- **Reminder** dibuat oleh RPC `refresh_reminders()` saat aplikasi dibuka, bell notifikasi dibuka, dan setelah mutasi kunci. Scheduler push yang sudah dikonfigurasi berjalan tiap menit.
+- **Pengingat jadwal:** satu notifikasi saat masuk hari jadwal (00.00 menurut zona waktu akun), dan satu lagi 1 jam sebelum mulai. Notifikasi tidak dibuat ulang saat refresh; jadwal batal, dipindahkan, atau sudah dimulai dibersihkan. Jadwal dini hari dapat menerima pengingat 1 jam pada hari sebelumnya.
+- **Reminder materi sebelumnya:** notifikasi terpisah 5 menit sebelum mulai. Materi/PR terakhir diambil dari siswa dan mata pelajaran yang sama, mengecualikan sesi batal dan ketidakhadiran. Detail jadwal tetap menampilkan catatan sebelumnya. Kedua pengingat memiliki toggle masing-masing. Web Push memerlukan langganan perangkat yang aktif; pengiriman dapat terlambat sekitar satu siklus pemeriksaan atau oleh perangkat.
+- **Review pribadi:** Pengaturan → Review MudahMengajar. Rating 1–5 dan komentar, satu review per akun, dapat diperbarui atau dihapus. Pemilik dan petugas dukungan membaca review melalui Portal Admin → Review. Tindak lanjut dan catatan internal terpisah dari rating/komentar asli. Review tidak tampil di halaman publik.
+- **Portal orang tua:** Detail Murid → Overview → Portal Orang Tua. Buat tautan pribadi untuk jadwal, presensi, materi, PR, dan tagihan satu murid. Tautan berlaku 90 hari; sesi portal maksimum 30 hari. Ganti/nonaktifkan tautan untuk mencabut akses. Token disimpan sebagai hash, sesi memakai cookie HttpOnly, dan pemeriksaan akses diulang pada setiap operasi. Murid nonaktif/diarsipkan tidak dapat memakai portal. Tautan hanya boleh dibagikan kepada wali atau murid yang berhak.
+- **Materi:** menu setelah Murid, dengan Koleksi Saya (catatan dan lampiran pribadi) serta Dari Pertemuan (materi sesi mengajar). Materi pertemuan dapat disalin ke koleksi. Perubahan koleksi tidak mengubah catatan pertemuan asal.
+- **Tugas/PR:** Ditugaskan dan Selesai, filter murid, tenggat, maksimal 5 lampiran per tugas (10 MB/file). PR yang dicatat saat menyelesaikan jadwal otomatis masuk ke daftar tugas. Tenggat dan teks PR disinkronkan dua arah dengan catatan pertemuan; status selesai dan lampiran tetap terjaga saat mengedit pertemuan. Guru menentukan status penyelesaian.
+- **Portal PR:** orang tua dapat membaca tugas murid, tenggat, status, dan mengunduh lampiran. Semua akses diperiksa ulang berdasarkan tautan portal dan murid tujuan. Portal tetap hanya untuk membaca.
+- **Lampiran:** bucket `teaching-files` bersifat privat. Akun guru hanya mengakses folder sendiri. Unduhan melalui route yang memeriksa kepemilikan atau portal murid, kemudian membuat tautan unduhan 60 detik. Berkas PDF, gambar JPEG/PNG/WebP, teks, Word, Excel, dan PowerPoint didukung.
+- **Pembayaran:** pencatatan pembayaran dan pengelolaan tagihan menggunakan alur guru seperti semula. Portal menampilkan total, jumlah terbayar, dan sisa tagihan.
+
+Uji integrasi reminder dan portal (seluruh fixture di-rollback):
+
+```bash
+supabase db query --linked --file supabase/tests/material_reminders_and_reviews.sql
+supabase db query --linked --file supabase/tests/parent_portal.sql
+supabase db query --linked --file supabase/tests/notification_timing.sql
+supabase db query --linked --file supabase/tests/admin_erp.sql
+supabase db query --linked --file supabase/tests/teaching_resources.sql
+```
+
+## Portal admin pemilik website
+
+- Buka `/admin` atau Menu Akun → Portal Admin. Akun pemilik proyek ini adalah `tomimartino10@gmail.com`, ditetapkan setelah verifikasi identitas akun. Pendaftaran biasa tidak memberi akses admin.
+- Akses ERP memerlukan Authenticator (TOTP). Pada akses pertama pilih Siapkan Verifikasi, pindai QR di aplikasi Authenticator, lalu masukkan kode 6 digit. Pemeriksaan peran aktif dan sesi MFA dilakukan ulang di server dan database pada setiap operasi admin.
+- Modul: dashboard akun, akun guru (aktif/tangguhkan), review pribadi, tiket dukungan, hasil scheduler notifikasi, pengumuman (draf/terjadwal/terbit), laporan 12 bulan dan CSV, biaya website, identitas website/email dukungan/mode pemeliharaan, pengelola dan catatan perubahan admin.
+- Peran Dukungan dapat membaca ringkasan akun serta mengelola review dan tiket. Pengaturan, akses admin, penangguhan, pengumuman, dan biaya website khusus pemilik. Admin tidak mendapat akses langsung ke tabel materi, murid, transaksi atau catatan mengajar guru lain.
+- Mode pemeliharaan dan penangguhan diterapkan pada RLS, RPC guru, Storage, portal orang tua, dan pengiriman push. Menonaktifkan pengelola langsung mencabut akses ERP dari token yang masih aktif. Admin tidak dapat menangguhkan akun admin aktif atau mengubah akses dirinya sendiri.
+- Guru membuat tiket lewat Menu Akun → Dukungan dan membaca balasan di Tiket Saya. Catatan internal hanya terlihat di portal admin. Pengumuman diterbitkan setelah konfirmasi terpisah; email penerima digunakan untuk memilih akun tertentu.
+- Biaya website merupakan pencatatan manual dan terpisah dari keuangan guru. Hasil pemantauan layanan berasal dari scheduler yang benar-benar berjalan, dengan retensi 30 hari; belum ada integrasi laporan biaya otomatis Vercel/Supabase.
+
+Uji Auth/MFA/REST/Storage menggunakan akun sementara: `node supabase/tests/admin_learning_api.mjs`. Akun, materi, tugas, tiket, dan berkas pengujian dibersihkan setelah selesai. Pada Windows, isi `QA_SUPABASE_CLI` dengan path executable CLI atau `supabase.js` sebelum menjalankan pengujian tersebut. Kredensial diambil dari `.env.local` dan tidak dicetak.
 
 ## Deployment
 
@@ -99,6 +130,6 @@ types/            # Tipe database Supabase
 
 ## Catatan MVP
 
-- Role orang tua (view-only) siap di skema (`parents`) tapi belum dibangun.
-- Ekspor PDF belum tersedia — gunakan CSV (sudah tersedia di halaman Laporan).
+- Portal menggunakan tautan privat per murid; akun login terpisah untuk orang tua belum disediakan.
+- Invoice dapat diekspor ke PDF; laporan tersedia sebagai CSV.
 - Seed hanya untuk development; jangan jalankan di production.

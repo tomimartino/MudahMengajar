@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   BadgeCheck,
   BookOpen,
+  Library,
+  ClipboardList,
   FileBarChart,
   LayoutDashboard,
   PanelLeftClose,
@@ -24,6 +26,8 @@ const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
   BookOpen,
+  Library,
+  ClipboardList,
   FileBarChart,
   Wallet,
   ReceiptText,

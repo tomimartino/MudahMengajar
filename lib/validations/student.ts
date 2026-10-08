@@ -58,7 +58,7 @@ const billingScheduleRefinement: (v: BillingScheduleValues, ctx: z.RefinementCtx
 
 export const studentSchema = z
   .object({
-    full_name: z.string().min(2, "Nama siswa wajib diisi."),
+    full_name: z.string().trim().min(2, "Nama siswa wajib diisi."),
     gender: z.enum(["L", "P"]).optional().nullable(),
     birth_date: z.string().optional().default(""),
     school_name: z.string().optional().default(""),
@@ -93,7 +93,7 @@ export const studentSchema = z
 export type StudentInput = z.infer<typeof studentSchema>;
 
 /**
- * Form "Tambah Paket" di detail murid: hanya bagian pembelajaran, sistem
+ * Form "Tambah Paket" di halaman Murid: hanya bagian pembelajaran, sistem
  * pembayaran, dan jadwal (identitas siswa diisi server dari database).
  */
 export const packageFormSchema = z

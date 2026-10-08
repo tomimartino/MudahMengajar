@@ -3,6 +3,8 @@ import { IBM_Plex_Mono, Nunito, Pixelify_Sans, Plus_Jakarta_Sans } from "next/fo
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SiteConfigProvider } from "@/components/site-config-provider";
+import { getSiteConfig } from "@/lib/admin";
 import "./globals.css";
 import "./appearance.css";
 
@@ -34,12 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const config=await getSiteConfig();
   return (
     <html lang="id" className={`${jakartaSans.variable} ${playfulFont.variable} ${pixelFont.variable} ${terminalFont.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          <SiteConfigProvider config={config}><TooltipProvider delayDuration={200}>{children}</TooltipProvider></SiteConfigProvider>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>

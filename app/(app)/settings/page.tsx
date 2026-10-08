@@ -8,6 +8,7 @@ import { ChatTemplatesForm } from "@/components/settings/chat-templates-form";
 import { LogoutButton } from "@/components/settings/logout-button";
 import { PushSettings } from "@/components/settings/push-settings";
 import { ThemeSettings } from "@/components/settings/theme-settings";
+import { ReviewForm } from "@/components/settings/review-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,6 +25,9 @@ export default async function SettingsPage() {
     .select("*")
     .eq("user_id", user!.id)
     .single();
+
+  const { data: review, error: reviewError } = await supabase.from("app_reviews")
+    .select("*").eq("user_id", user!.id).maybeSingle();
 
   return (
     <div>
@@ -71,6 +75,7 @@ export default async function SettingsPage() {
                   notify_schedule: settings.notify_schedule,
                   notify_payment: settings.notify_payment,
                   notify_package: settings.notify_package,
+                  notify_material: settings.notify_material,
                 }}
               />
             )}
@@ -83,6 +88,15 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <PushSettings />
+          </CardContent>
+        </Card>
+
+        <Card id="review" className="scroll-mt-24">
+          <CardHeader>
+            <CardTitle className="text-base">Review MudahMengajar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReviewForm initial={review} loadError={Boolean(reviewError)} />
           </CardContent>
         </Card>
 

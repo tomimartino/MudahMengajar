@@ -6,9 +6,12 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+import type { PortalTables } from "./portal.types";
+import type { LearningTables } from "./learning.types";
+
 export type Database = {
   public: {
-    Tables: {
+    Tables: PortalTables & LearningTables & {
       profiles: {
         Row: {
           id: string;
@@ -392,6 +395,7 @@ export type Database = {
           sub_material: string | null;
           learning_notes: string | null;
           homework: string | null;
+          homework_due_date: string | null;
           score: string | null;
           progress_notes: string | null;
           status: string;
@@ -412,6 +416,7 @@ export type Database = {
           sub_material?: string | null;
           learning_notes?: string | null;
           homework?: string | null;
+          homework_due_date?: string | null;
           score?: string | null;
           progress_notes?: string | null;
           status?: string;
@@ -424,6 +429,7 @@ export type Database = {
           sub_material: string | null;
           learning_notes: string | null;
           homework: string | null;
+          homework_due_date: string | null;
           score: string | null;
           progress_notes: string | null;
           status: string;
@@ -452,7 +458,11 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<{ status: string; note: string | null; updated_at: string }>;
+        Update: Partial<{
+          status: string;
+          note: string | null;
+          updated_at: string;
+        }>;
         Relationships: [];
       };
       payments: {
@@ -548,7 +558,29 @@ export type Database = {
           read_at?: string | null;
           created_at?: string;
         };
-        Update: Partial<{ read_at: string | null; title: string; body: string | null }>;
+        Update: Partial<{
+          read_at: string | null;
+          title: string;
+          body: string | null;
+        }>;
+        Relationships: [];
+      };
+      app_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          rating: number;
+          comment: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          rating: number;
+          comment: string;
+        };
+        Update: { rating?: number; comment?: string };
         Relationships: [];
       };
       settings: {
@@ -563,6 +595,7 @@ export type Database = {
           notify_schedule: boolean;
           notify_payment: boolean;
           notify_package: boolean;
+          notify_material: boolean;
           message_template_invoice: string;
           message_template_report: string;
           created_at: string;
@@ -579,6 +612,7 @@ export type Database = {
           notify_schedule?: boolean;
           notify_payment?: boolean;
           notify_package?: boolean;
+          notify_material?: boolean;
           message_template_invoice?: string;
           message_template_report?: string;
           created_at?: string;
@@ -593,6 +627,7 @@ export type Database = {
           notify_schedule: boolean;
           notify_payment: boolean;
           notify_package: boolean;
+          notify_material: boolean;
           message_template_invoice: string;
           message_template_report: string;
           updated_at: string;
@@ -647,6 +682,37 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_admin_access: { Args: Record<string, never>; Returns: Json };
+      get_account_access: { Args: Record<string, never>; Returns: Json };
+      get_site_config: { Args: Record<string, never>; Returns: Json };
+      is_account_enabled: { Args: { p_user_id: string }; Returns: boolean };
+      admin_read: { Args: { p_section: string; p_search?: string; p_status?: string; p_page?: number }; Returns: Json };
+      admin_mutate: { Args: { p_action: string; p_data: Json }; Returns: Json };
+      teacher_support: { Args: { p_action: string; p_data?: Json }; Returns: Json };
+      publish_site_announcements: { Args: Record<string, never>; Returns: number };
+      get_push_blocked_accounts: { Args: Record<string, never>; Returns: string[] };
+      record_service_run: { Args: { p_service: string; p_outcome: string; p_processed?: number; p_sent?: number; p_failed?: number; p_duration_ms?: number; p_message?: string }; Returns: undefined };
+      move_schedule: {
+        Args: { p_schedule_id: string; p_date: string; p_time: string };
+        Returns: undefined;
+      };
+      student_name_conflicts: {
+        Args: { p_name: string; p_student_id?: string | null };
+        Returns: boolean;
+      };
+      rotate_portal_link: {
+        Args: { p_student_id: string; p_hash: string };
+        Returns: undefined;
+      };
+      portal_invoice_balances: { Args: { p_hash: string }; Returns: Json };
+      get_previous_session: {
+        Args: { p_schedule_id: string };
+        Returns: Json;
+      };
+      complete_learning_session: {
+        Args: { p_schedule_id:string; p_attendance:string; p_duration_minutes:number; p_material:string|null; p_sub_material:string|null; p_learning_notes:string|null; p_homework:string|null; p_score:number|null; p_progress_notes:string|null; p_homework_due_date?:string|null };
+        Returns:string;
+      };
       complete_session: {
         Args: {
           p_schedule_id: string;
@@ -750,3 +816,14 @@ export type Parent = Tables<"parents">;
 export type StudentPackage = Tables<"student_packages">;
 export type Notification = Tables<"notifications">;
 export type Settings = Tables<"settings">;
+export type AppReview = Tables<"app_reviews">;
+
+export interface PreviousSession {
+  id: string;
+  session_date: string;
+  material: string | null;
+  sub_material: string | null;
+  learning_notes: string | null;
+  homework: string | null;
+  progress_notes: string | null;
+}

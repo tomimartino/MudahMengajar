@@ -80,10 +80,12 @@ export async function updateBillingSettingsAction(input: unknown): Promise<Actio
       notify_schedule: d.notify_schedule,
       notify_payment: d.notify_payment,
       notify_package: d.notify_package,
+      notify_material: d.notify_material,
     })
     .eq("user_id", user.id);
   if (error) return fail(actionError(error));
 
+  await supabase.rpc("refresh_reminders");
   revalidatePath("/", "layout");
   return ok();
 }

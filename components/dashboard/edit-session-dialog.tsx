@@ -32,6 +32,7 @@ interface ScheduleInfo {
     sub_material: string | null;
     learning_notes: string | null;
     homework: string | null;
+    homework_due_date?: string | null;
     score: string | number | null;
     progress_notes: string | null;
   } | null;
@@ -56,6 +57,7 @@ export function EditSessionDialog({
       sub_material: schedule.session?.sub_material ?? "",
       learning_notes: schedule.session?.learning_notes ?? "",
       homework: schedule.session?.homework ?? "",
+      homework_due_date: schedule.session?.homework_due_date ?? null,
       score: schedule.session?.score != null ? Number(schedule.session.score) : null,
       progress_notes: schedule.session?.progress_notes ?? "",
     },
@@ -136,6 +138,7 @@ export function EditSessionDialog({
                 </FormItem>
               )}
             />
+            <FormField control={form.control} name="homework_due_date" render={({field}) => <FormItem><FormLabel>Tenggat PR</FormLabel><FormControl><Input type="date" value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur}/></FormControl><FormMessage/></FormItem>}/>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}

@@ -10,6 +10,7 @@ import { studentSchema } from "@/lib/validations/student";
 import { parseAmount } from "@/lib/utils/currency";
 import { DELETE_STUDENT_CONFIRMATION } from "@/lib/constants";
 import type { ActionResult } from "@/lib/actions/helpers";
+import { DUPLICATE_STUDENT_MESSAGE, isDuplicateStudentError } from "@/lib/utils/student-name";
 
 function clean(v: string): string | null {
   const t = v.trim();
@@ -242,6 +243,9 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
   if (!user) return fail("Tidak terautentikasi.");
 
   try {
+    const { data: duplicate, error: duplicateError } = await supabase.rpc("student_name_conflicts", { p_name: d.full_name });
+    if (duplicateError) return fail("Nama murid belum dapat diperiksa. Silakan coba lagi.");
+    if (duplicate) return fail(DUPLICATE_STUDENT_MESSAGE);
     const parentId = await upsertParent(supabase, user.id, d.parent_name, d.parent_whatsapp);
 
     const { data: student, error } = await supabase
@@ -288,7 +292,7 @@ export async function createStudentAction(input: unknown): Promise<ActionResult<
     revalidatePath("/", "layout");
     return ok({ id: student.id });
   } catch (e) {
-    return fail(actionError(e));
+    return fail(isDuplicateStudentError(e) ? DUPLICATE_STUDENT_MESSAGE : actionError(e));
   }
 }
 
@@ -339,6 +343,11 @@ export async function updateStudentAction(
   if (!user) return fail("Tidak terautentikasi.");
 
   try {
+    const { data: duplicate, error: duplicateError } = await supabase.rpc("student_name_conflicts", {
+      p_name: d.full_name, p_student_id: studentId,
+    });
+    if (duplicateError) return fail("Nama murid belum dapat diperiksa. Silakan coba lagi.");
+    if (duplicate) return fail(DUPLICATE_STUDENT_MESSAGE);
     const parentId = await upsertParent(supabase, user.id, d.parent_name, d.parent_whatsapp);
 
     const { error } = await supabase
@@ -403,12 +412,12 @@ export async function updateStudentAction(
     revalidatePath("/", "layout");
     return ok();
   } catch (e) {
-    return fail(actionError(e));
+    return fail(isDuplicateStudentError(e) ? DUPLICATE_STUDENT_MESSAGE : actionError(e));
   }
 }
 
 /**
- * Tambah paket dari halaman detail murid: perbarui pembelajaran/pembayaran
+ * Tambah paket dari halaman Murid: perbarui pembelajaran/pembayaran
  * siswa, buat paket + tagihan, dan buat ulang jadwal bila polanya berubah.
  * Identitas siswa diambil dari database — form hanya berisi 3 bagian.
  */

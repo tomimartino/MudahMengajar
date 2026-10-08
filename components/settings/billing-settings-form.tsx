@@ -41,6 +41,7 @@ export function BillingSettingsForm({
     notify_schedule: boolean;
     notify_payment: boolean;
     notify_package: boolean;
+    notify_material: boolean;
   };
 }) {
   const router = useRouter();
@@ -59,6 +60,7 @@ export function BillingSettingsForm({
       notify_schedule: initial.notify_schedule,
       notify_payment: initial.notify_payment,
       notify_package: initial.notify_package,
+      notify_material: initial.notify_material ?? true,
     },
   });
 
@@ -181,6 +183,20 @@ export function BillingSettingsForm({
               <FormItem className="flex items-center justify-between">
                 <div>
                   <FormLabel>Pengingat pembayaran</FormLabel>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="notify_material"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between">
+                <div>
+                  <FormLabel>Pengingat materi sebelumnya</FormLabel>
                 </div>
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />

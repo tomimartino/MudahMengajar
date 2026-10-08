@@ -44,6 +44,7 @@ import {
 import { SubmitButton } from "@/components/shared/submit-button";
 import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/lib/actions/helpers";
+import { DUPLICATE_STUDENT_MESSAGE } from "@/lib/utils/student-name";
 
 export interface StudentFormInitial {
   id?: string;
@@ -261,6 +262,9 @@ export function StudentForm({
     setPending(false);
 
     if (!result.ok) {
+      if (!isPackageMode && result.error === DUPLICATE_STUDENT_MESSAGE) {
+        form.setError("full_name", { type: "server", message: result.error }, { shouldFocus: true });
+      }
       toast.error(result.error);
       return;
     }

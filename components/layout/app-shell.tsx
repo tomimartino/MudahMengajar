@@ -11,6 +11,7 @@ export function AppShell({
   userAvatarUrl,
   timezone,
   unreadCount,
+  isAdmin = false,
   children,
 }: {
   userName: string;
@@ -18,6 +19,7 @@ export function AppShell({
   userAvatarUrl: string | null;
   timezone: string;
   unreadCount: number;
+  isAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -32,6 +34,7 @@ export function AppShell({
           userAvatarUrl={userAvatarUrl}
           timezone={timezone}
           unreadCount={unreadCount}
+          isAdmin={isAdmin}
         />
         <main data-ui="content" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-28 pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8 lg:px-10">
           {children}

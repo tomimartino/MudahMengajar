@@ -9,12 +9,14 @@ export function Topbar({
   userAvatarUrl,
   timezone,
   unreadCount,
+  isAdmin = false,
 }: {
   userName: string;
   userEmail: string;
   userAvatarUrl: string | null;
   timezone: string;
   unreadCount: number;
+  isAdmin?: boolean;
 }) {
   return (
     <header data-ui="topbar" className="sticky top-0 z-30 flex h-20 items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-4 backdrop-blur sm:px-6 md:px-8 lg:px-10">
@@ -31,7 +33,7 @@ export function Topbar({
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         <NotificationBell unreadCount={unreadCount} />
-        <UserMenu name={userName} email={userEmail} avatarUrl={userAvatarUrl} />
+        <UserMenu name={userName} email={userEmail} avatarUrl={userAvatarUrl} isAdmin={isAdmin} />
       </div>
     </header>
   );

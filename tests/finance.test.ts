@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateInvoiceMonthly,
   aggregateMonthly,
+  invoiceMonthKey,
   lastTwelveMonthKeys,
   monthDateRange,
   monthLabel,
@@ -47,11 +48,11 @@ describe("aggregateMonthly", () => {
 });
 
 describe("aggregateInvoiceMonthly", () => {
-  it("menjumlahkan nominal tagihan per bulan dari created_at", () => {
+  it("menjumlahkan nominal tagihan per bulan jatuh tempo, bukan bulan dibuat", () => {
     const invoices = [
-      { created_at: "2026-09-01T08:00:00Z", amount: "200000" },
-      { created_at: "2026-09-15T08:00:00Z", amount: "150000" },
-      { created_at: "2026-10-02T08:00:00Z", amount: "300000" },
+      { created_at: "2026-10-01T08:00:00Z", due_date: "2026-09-10", amount: "200000" },
+      { created_at: "2026-10-02T08:00:00Z", due_date: "2026-09-20", amount: "150000" },
+      { created_at: "2026-10-02T08:00:00Z", due_date: "2026-10-20", amount: "300000" },
     ];
     const map = aggregateInvoiceMonthly(invoices);
 
@@ -61,14 +62,44 @@ describe("aggregateInvoiceMonthly", () => {
 
   it("menangani amount bertipe number maupun string", () => {
     const map = aggregateInvoiceMonthly([
-      { created_at: "2026-09-01T08:00:00Z", amount: 100000 },
-      { created_at: "2026-09-02T08:00:00Z", amount: "50000" },
+      { created_at: "2026-09-01T08:00:00Z", due_date: "2026-09-20", amount: 100000 },
+      { created_at: "2026-09-02T08:00:00Z", due_date: "2026-09-20", amount: "50000" },
     ]);
     expect(map.get("2026-09")).toBe(150000);
   });
 
   it("mengembalikan map kosong tanpa tagihan", () => {
     expect(aggregateInvoiceMonthly([]).size).toBe(0);
+  });
+
+  it("paket bulan lalu yang baru dimasukkan tidak menambah estimasi bulan sekarang", () => {
+    const current = { created_at: "2026-10-01T08:00:00Z", due_date: "2026-10-20", amount: "1200000" };
+    const before = aggregateInvoiceMonthly([current]);
+    const after = aggregateInvoiceMonthly([current,
+      { created_at: "2026-10-08T08:00:00Z", due_date: "2026-09-16", amount: "500000" },
+    ]);
+    expect(after.get("2026-10")).toBe(before.get("2026-10"));
+    expect(after.get("2026-09")).toBe(500000);
+  });
+
+  it("mengikuti jatuh tempo saat paket berasal dari tahun lalu atau tahun berikutnya", () => {
+    const map = aggregateInvoiceMonthly([
+      { created_at: "2026-10-08T08:00:00Z", due_date: "2025-12-31", amount: "500000" },
+      { created_at: "2026-12-31T08:00:00Z", due_date: "2027-01-15", amount: "750000" },
+    ]);
+    expect(map.get("2025-12")).toBe(500000);
+    expect(map.get("2027-01")).toBe(750000);
+    expect(map.has("2026-10")).toBe(false);
+  });
+
+  it("tagihan tanpa jatuh tempo mengikuti bulan dibuat dalam zona waktu guru", () => {
+    const invoice = { created_at: "2026-09-30T18:00:00Z", due_date: null, amount: 100000 };
+    expect(aggregateInvoiceMonthly([invoice], "Asia/Jakarta").get("2026-10")).toBe(100000);
+    expect(aggregateInvoiceMonthly([invoice], "UTC").get("2026-09")).toBe(100000);
+  });
+
+  it("tanggal jatuh tempo tetap tanggal kalender meskipun zona waktu berubah", () => {
+    expect(invoiceMonthKey({ created_at: "2026-10-08T08:00:00Z", due_date: "2026-10-01" }, "America/Los_Angeles")).toBe("2026-10");
   });
 });
 

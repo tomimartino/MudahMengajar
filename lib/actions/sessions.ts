@@ -33,7 +33,7 @@ export async function completeSessionAction(
 
   const supabase = await createClient();
   try {
-    const { data, error } = await supabase.rpc("complete_session", {
+    const { data, error } = await supabase.rpc("complete_learning_session", {
       p_schedule_id: scheduleId,
       p_attendance: d.attendance,
       p_duration_minutes: d.duration_minutes,
@@ -41,6 +41,7 @@ export async function completeSessionAction(
       p_sub_material: d.sub_material.trim() || null,
       p_learning_notes: d.learning_notes.trim() || null,
       p_homework: d.homework.trim() || null,
+      p_homework_due_date: d.homework_due_date,
       p_score: d.score,
       p_progress_notes: d.progress_notes.trim() || null,
     });
@@ -71,6 +72,7 @@ export async function updateSessionAction(
       sub_material: d.sub_material.trim() || null,
       learning_notes: d.learning_notes.trim() || null,
       homework: d.homework.trim() || null,
+      homework_due_date: d.homework_due_date,
       score: d.score === null ? null : String(d.score),
       progress_notes: d.progress_notes.trim() || null,
     })
@@ -138,6 +140,7 @@ export async function saveSessionForScheduleAction(
     sub_material: d.sub_material.trim() || null,
     learning_notes: d.learning_notes.trim() || null,
     homework: d.homework.trim() || null,
+    homework_due_date: d.homework_due_date,
     score: d.score === null ? null : String(d.score),
     progress_notes: d.progress_notes.trim() || null,
   };

@@ -13,16 +13,13 @@ import {
   ScoresTab,
   SessionsTab,
 } from "@/components/students/student-tabs";
-import { AddPackageButton } from "@/components/students/package-form";
-import type { StudentFormInitial } from "@/components/students/student-form";
-import { buildSchedulePattern } from "@/lib/utils/schedule-pattern";
-import { toDateInput } from "@/lib/utils/date";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BILLING_TYPES, LEARNING_MODES } from "@/lib/constants";
 import { buildWaLink } from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils";
+import { PortalLinkCard } from "@/components/portal/portal-link-card";
 
 export const metadata: Metadata = { title: "Detail Siswa" };
 
@@ -53,7 +50,7 @@ export default async function StudentDetailPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("timezone, learning_mode")
+    .select("timezone")
     .eq("id", user!.id)
     .single();
   const tz = profile?.timezone ?? "Asia/Jakarta";
@@ -71,63 +68,12 @@ export default async function StudentDetailPage({
     .select("subject_id, subjects(name)")
     .eq("student_id", id);
 
-  // Prefill form "Tambah Paket": mapel guru, paket aktif, jadwal mendatang, durasi pengaturan.
-  const [{ data: subjects }, { data: activePkg }, { data: upcoming }, { data: settings }] =
-    await Promise.all([
-      supabase
-        .from("subjects")
-        .select("id, name")
-        .eq("user_id", user!.id)
-        .order("name"),
-      supabase
-        .from("student_packages")
-        .select("total_sessions, per_session_rate, start_date")
-        .eq("student_id", id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("schedules")
-        .select("start_at, location")
-        .eq("student_id", id)
-        .eq("status", "scheduled")
-        .order("start_at")
-        .limit(100),
-      supabase
-        .from("settings")
-        .select("default_duration_minutes")
-        .eq("user_id", user!.id)
-        .single(),
-    ]);
-
   const parent = student.parents as unknown as { name: string; whatsapp: string } | null;
+  const { data: portalLink, error: portalError } = await supabase.from("portal_links")
+    .select("expires_at,revoked_at").eq("student_id", id).eq("user_id", user!.id).maybeSingle();
+  if (portalError) throw new Error("Akses portal belum dapat dimuat.");
+  const portalActive = Boolean(portalLink && !portalLink.revoked_at && Date.parse(portalLink.expires_at) > new Date().getTime());
 
-  const pattern = buildSchedulePattern(upcoming, tz);
-  const packageInitial: StudentFormInitial = {
-    id: student.id,
-    full_name: student.full_name,
-    gender: (student.gender as "L" | "P" | null) ?? null,
-    birth_date: student.birth_date ?? "",
-    school_name: student.school_name ?? "",
-    school_level: student.school_level,
-    grade_level: student.grade_level,
-    phone: student.phone ?? "",
-    parent_name: parent?.name ?? "",
-    parent_whatsapp: parent?.whatsapp ?? "",
-    address: student.address ?? "",
-    notes: student.notes ?? "",
-    learning_mode: student.learning_mode,
-    billing_type: "package",
-    package_sessions: activePkg?.total_sessions ?? null,
-    package_per_session_rate: activePkg?.per_session_rate ?? null,
-    package_start_date: toDateInput(new Date()),
-    schedule_times: pattern.times,
-    schedule_location: pattern.location,
-    schedule_start_date: pattern.startDate,
-    subject_ids: (links ?? []).map((l) => l.subject_id),
-    status: student.status,
-  };
   const initials = student.full_name
     .split(" ")
     .map((p) => p[0])
@@ -169,14 +115,6 @@ export default async function StudentDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <AddPackageButton
-            subjects={subjects ?? []}
-            initial={packageInitial}
-            defaultLearningMode={
-              (profile?.learning_mode as "offline" | "online" | "hybrid" | undefined) ?? "offline"
-            }
-            defaultDurationMinutes={settings?.default_duration_minutes ?? 90}
-          />
           {parent?.whatsapp && (
             <Button asChild variant="outline" size="sm">
               <a
@@ -214,7 +152,9 @@ export default async function StudentDetailPage({
         ))}
       </div>
 
-      {activeTab === "overview" && <OverviewTab studentId={id} timezone={tz} />}
+      {activeTab === "overview" && <div className="space-y-6"><OverviewTab studentId={id} timezone={tz} />
+        <PortalLinkCard studentId={id} active={portalActive} expiresAt={portalLink?.expires_at ?? null} timezone={tz} studentActive={student.status === "active"} />
+      </div>}
       {activeTab === "schedule" && <ScheduleTab studentId={id} timezone={tz} />}
       {activeTab === "sessions" && <SessionsTab studentId={id} timezone={tz} />}
       {activeTab === "scores" && <ScoresTab studentId={id} timezone={tz} />}

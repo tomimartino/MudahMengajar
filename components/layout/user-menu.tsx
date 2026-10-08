@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, ChevronDown, LogOut, Settings } from "lucide-react";
+import { BadgeCheck, ChevronDown, LogOut, Settings, ShieldCheck, HeartHandshake } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -17,10 +17,12 @@ export function UserMenu({
   name,
   email,
   avatarUrl,
+  isAdmin = false,
 }: {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  isAdmin?: boolean;
 }) {
   const initials = name
     .split(" ")
@@ -49,6 +51,8 @@ export function UserMenu({
           <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAdmin && <DropdownMenuItem asChild><Link href="/admin"><ShieldCheck className="size-4" />Portal Admin</Link></DropdownMenuItem>}
+        <DropdownMenuItem asChild><Link href="/support"><HeartHandshake className="size-4" />Dukungan</Link></DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/profile">
             <BadgeCheck className="size-4" /> Profil

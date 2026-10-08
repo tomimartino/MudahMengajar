@@ -30,19 +30,16 @@ export const APP_NAME = "MudahMengajar";
 export const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
   { label: "Murid", href: "/students", icon: "Users" },
+  { label: "Materi", href: "/materials", icon: "Library" },
+  { label: "Tugas/PR", href: "/homework", icon: "ClipboardList" },
   { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
   { label: "Pembayaran", href: "/payments", icon: "ReceiptText" },
   { label: "Keuangan", href: "/finance", icon: "Wallet" },
   { label: "Laporan", href: "/reports", icon: "FileBarChart" },
 ] as const;
 
-export const MOBILE_NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-  { label: "Murid", href: "/students", icon: "Users" },
-  { label: "Pertemuan", href: "/sessions", icon: "BookOpen" },
-  { label: "Keuangan", href: "/finance", icon: "Wallet" },
-  { label: "Pembayaran", href: "/payments", icon: "ReceiptText" },
-] as const;
+// Navigasi bawah mengikuti urutan desktop; halaman lainnya tetap ada di menu Lainnya.
+export const MOBILE_NAV_ITEMS = NAV_ITEMS.slice(0, 5);
 
 export const SCHOOL_LEVELS = ["SD", "SMP", "SMA", "Umum"] as const;
 export type SchoolLevel = (typeof SCHOOL_LEVELS)[number];

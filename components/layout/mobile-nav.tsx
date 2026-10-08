@@ -6,6 +6,8 @@ import { useState } from "react";
 import {
   BadgeCheck,
   BookOpen,
+  Library,
+  ClipboardList,
   Ellipsis,
   FileBarChart,
   LayoutDashboard,
@@ -25,6 +27,8 @@ const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
   BookOpen,
+  Library,
+  ClipboardList,
   FileBarChart,
   Wallet,
   ReceiptText,

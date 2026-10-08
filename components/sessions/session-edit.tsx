@@ -33,6 +33,7 @@ export function SessionEditForm({
     sub_material: string | null;
     learning_notes: string | null;
     homework: string | null;
+    homework_due_date?: string | null;
     score: string | null;
     progress_notes: string | null;
   };
@@ -48,6 +49,7 @@ export function SessionEditForm({
       sub_material: session.sub_material ?? "",
       learning_notes: session.learning_notes ?? "",
       homework: session.homework ?? "",
+      homework_due_date: session.homework_due_date ?? null,
       score: session.score ? Number(session.score) : null,
       progress_notes: session.progress_notes ?? "",
     },
@@ -159,6 +161,7 @@ export function SessionEditForm({
                 </FormItem>
               )}
             />
+            <FormField control={form.control} name="homework_due_date" render={({field}) => <FormItem><FormLabel>Tenggat PR</FormLabel><FormControl><Input type="date" value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur}/></FormControl><FormMessage/></FormItem>}/>
             <FormField
               control={form.control}
               name="progress_notes"

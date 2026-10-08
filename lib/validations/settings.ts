@@ -12,6 +12,7 @@ export const billingSettingsSchema = z.object({
   notify_schedule: z.boolean(),
   notify_payment: z.boolean(),
   notify_package: z.boolean(),
+  notify_material: z.boolean(),
 });
 
 export const chatTemplatesSchema = z.object({

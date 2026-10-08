@@ -35,6 +35,7 @@ export interface DashboardScheduleSession {
   sub_material: string | null;
   learning_notes: string | null;
   homework: string | null;
+  homework_due_date?: string | null;
   score: string | number | null;
   progress_notes: string | null;
   attendance_status: string | null;
@@ -211,8 +212,9 @@ export function DashboardSchedule({
                   {format(d, "d")}
                 </span>
                 {count > 0 && (
-                  <span aria-label={`${count} murid`} className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1 py-0.5 text-[10px] font-semibold text-primary sm:text-[11px]">
-                    <Users className="hidden size-3 xl:block" aria-hidden="true" /> {count}<span className="hidden xl:inline">murid</span>
+                  <span aria-label={`${count} murid`} className="inline-flex max-w-full flex-wrap items-center gap-x-0.5 rounded-md bg-primary/10 px-1 py-0.5 text-[10px] font-semibold leading-tight text-primary sm:gap-x-1 sm:text-[11px]">
+                    <Users className="hidden size-3 xl:block" aria-hidden="true" />
+                    <span>{count}</span><span className="hidden sm:inline">murid</span>
                   </span>
                 )}
               </button>
@@ -243,7 +245,7 @@ export function DashboardSchedule({
                     count > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground"
                   )}
                 >
-                  <Users className="size-3" /> {count > 0 ? `${count} murid` : "Tidak ada jadwal"}
+                  <Users className="size-3" /> {count > 0 ? <><span>{count}</span><span className="hidden sm:inline">murid</span></> : "Tidak ada jadwal"}
                 </p>
               </button>
             );

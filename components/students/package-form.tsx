@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PackagePlus, PackageX, SlidersHorizontal } from "lucide-react";
+import { PackageX, SlidersHorizontal } from "lucide-react";
 import {
   adjustPackageAction,
   cancelPackageAction,
@@ -29,49 +29,6 @@ import { StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { StudentForm, type StudentFormInitial } from "@/components/students/student-form";
-
-export function AddPackageButton({
-  subjects,
-  initial,
-  defaultLearningMode,
-  defaultDurationMinutes,
-}: {
-  subjects: { id: string; name: string }[];
-  initial: StudentFormInitial;
-  defaultLearningMode?: "offline" | "online" | "hybrid";
-  defaultDurationMinutes?: number;
-}) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <PackagePlus className="size-4" /> Tambah Paket
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Tambah Paket Pertemuan</DialogTitle>
-        </DialogHeader>
-        <StudentForm
-          mode="package"
-          subjects={subjects}
-          initial={initial}
-          defaultLearningMode={defaultLearningMode}
-          defaultDurationMinutes={defaultDurationMinutes}
-          onSuccess={() => {
-            setOpen(false);
-            router.refresh();
-          }}
-          onCancel={() => setOpen(false)}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export interface PackageRow {
   id: string;

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StudentFilters } from "@/components/students/student-filters";
 import { StudentTable, type EnrichedStudent } from "@/components/students/student-table";
 import { StudentCard } from "@/components/students/student-card";
+import { AddPackageButton } from "@/components/students/add-package-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { PAGE_SIZE } from "@/lib/constants";
@@ -43,6 +44,15 @@ export default async function StudentsPage({
     .select("id, name")
     .eq("user_id", user!.id)
     .order("name");
+
+  const studentActions = (
+    <div className="flex w-full gap-2 sm:w-auto">
+      <AddPackageButton />
+      <Button asChild className="flex-1 sm:flex-none">
+        <Link href="/students/new"><UserPlus className="size-4" /> Tambah Murid</Link>
+      </Button>
+    </div>
+  );
 
   let query = supabase
     .from("students")
@@ -108,7 +118,7 @@ export default async function StudentsPage({
   const { data: students, count } = await query.range(from, to).order("full_name");
 
   if (!students || students.length === 0) {
-    return renderEmpty(subjects ?? [], q, false, status || level || subject || payment);
+    return renderEmpty(subjects ?? [], q, Boolean(status || level || subject || payment));
   }
 
   // Agregat per siswa (batch, tanpa N+1)
@@ -214,14 +224,8 @@ export default async function StudentsPage({
     <div>
       <PageHeader
         title="Murid"
-        description={`${count ?? 0} siswa terdaftar`}
-        action={
-          <Button asChild>
-            <Link href="/students/new">
-              <UserPlus className="size-4" /> Tambah Siswa
-            </Link>
-          </Button>
-        }
+        description={`${count ?? 0} murid${q || status || level || subject || payment ? " ditemukan" : " terdaftar"}`}
+        action={studentActions}
       />
       <div className="mb-4 mt-4">
         <StudentFilters subjects={subjects ?? []} />
@@ -264,32 +268,25 @@ export default async function StudentsPage({
   function renderEmpty(
     subjectList: { id: string; name: string }[],
     searchText: string,
-    filtered: boolean,
-    hasActiveFilter: boolean | string = false
+    hasActiveFilter: boolean
   ) {
     return (
       <div>
         <PageHeader
           title="Murid"
-          action={
-            <Button asChild>
-              <Link href="/students/new">
-                <UserPlus className="size-4" /> Tambah Siswa
-              </Link>
-            </Button>
-          }
+          action={studentActions}
         />
         <div className="mb-4 mt-4">
           <StudentFilters subjects={subjectList} />
         </div>
         <EmptyState
           icon={Users}
-          title={searchText || hasActiveFilter ? "Tidak ada siswa yang cocok." : "Belum ada siswa."}
+          title={searchText || hasActiveFilter ? "Tidak ada murid yang cocok." : "Belum ada murid."}
           action={
             !searchText && !hasActiveFilter ? (
               <Button asChild>
                 <Link href="/students/new">
-                  <UserPlus className="size-4" /> Tambah Siswa Pertama
+                  <UserPlus className="size-4" /> Tambah Murid Pertama
                 </Link>
               </Button>
             ) : undefined

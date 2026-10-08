@@ -120,6 +120,7 @@ export default async function DashboardPage({
       sub_material: string | null;
       learning_notes: string | null;
       homework: string | null;
+      homework_due_date: string | null;
       score: string | number | null;
       progress_notes: string | null;
       attendance_status: string | null;
@@ -128,7 +129,7 @@ export default async function DashboardPage({
   if (scheduleIds.length > 0) {
     const { data: sessionRows } = await supabase
       .from("sessions")
-      .select("id, schedule_id, material, sub_material, learning_notes, homework, score, progress_notes")
+      .select("id, schedule_id, material, sub_material, learning_notes, homework, homework_due_date, score, progress_notes")
       .in("schedule_id", scheduleIds);
     const sessionIds = (sessionRows ?? []).map((r) => r.id);
     const statusBySession = new Map<string, string>();

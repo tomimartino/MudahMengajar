@@ -71,7 +71,7 @@ export default async function ProfilePage() {
             <div className="min-w-0 flex-1">
               <h2 className="text-2xl font-bold tracking-tight">{profile.full_name || "Guru"}</h2>
               <p className="text-muted-foreground">
-                {profile.headline || "Belum ada headline — tambahkan di Edit Profil."}
+                {profile.headline || "Belum ada headline."}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(profile.teaching_levels ?? []).map((l) => (

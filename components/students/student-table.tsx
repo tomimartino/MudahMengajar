@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StudentActions } from "@/components/students/student-actions";
 import { StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
@@ -58,7 +59,9 @@ export function StudentTable({
           {students.map((s) => (
             <TableRow key={s.id}>
               <TableCell>
-                <p className="font-medium">{s.full_name}</p>
+                <Link href={`/students/${s.id}`} className="font-medium underline-offset-4 hover:text-primary hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {s.full_name}
+                </Link>
                 <p className="text-xs text-muted-foreground">{s.school_name ?? "—"}</p>
               </TableCell>
               <TableCell>

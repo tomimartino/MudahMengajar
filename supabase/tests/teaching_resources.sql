@@ -1,0 +1,33 @@
+begin;
+do $$
+declare u uuid:=gen_random_uuid(); other_u uuid:=gen_random_uuid(); student_id uuid:=gen_random_uuid(); foreign_student uuid:=gen_random_uuid(); lesson_id uuid:=gen_random_uuid(); subject_id uuid:=gen_random_uuid(); schedule_id uuid:=gen_random_uuid(); task_id uuid; material_id uuid;
+begin
+ insert into auth.users(id,email,raw_user_meta_data) values(u,u||'@example.invalid','{}'),(other_u,other_u||'@example.invalid','{}');
+ insert into public.students(id,user_id,full_name,school_level,grade_level) values(student_id,u,'Materi QA','SD','3'),(foreign_student,other_u,'Murid Lain QA','SD','4');
+ insert into public.subjects(id,user_id,name) values(subject_id,u,'Materi QA');
+ insert into public.schedules(id,user_id,student_id,subject_id,start_at,end_at) values(schedule_id,u,student_id,subject_id,'2026-10-09 14:00+07','2026-10-09 15:00+07');
+ perform set_config('request.jwt.claim.sub',u::text,true);perform set_config('role','authenticated',true);
+ lesson_id:=public.complete_learning_session(schedule_id,'hadir',60,'Pecahan','Perkalian','Catatan','Kerjakan soal 1 sampai 5',null,null,'2026-10-12');
+ select id into task_id from public.homework_tasks where session_id=lesson_id;
+ if task_id is null or not exists(select 1 from public.homework_tasks where id=task_id and due_date='2026-10-12' and status='assigned') then raise exception 'Calendar homework missing or deadline lost';end if;
+ update public.homework_tasks set status='completed' where id=task_id;
+ update public.sessions set homework='Kerjakan soal 1 sampai 10',homework_due_date='2026-10-13' where id=lesson_id;
+ if not exists(select 1 from public.homework_tasks where id=task_id and status='completed' and due_date='2026-10-13' and description='Kerjakan soal 1 sampai 10' and completed_at is not null) then raise exception 'Session edit reset completion or duplicated task';end if;
+ update public.homework_tasks set description='Tugas diperbarui',due_date='2026-10-14' where id=task_id;
+ if not exists(select 1 from public.sessions where id=lesson_id and homework='Tugas diperbarui' and homework_due_date='2026-10-14') then raise exception 'Task/session drift';end if;
+ insert into public.learning_materials(user_id,title,content,source_session_id) values(u,'Koleksi QA','Materi dari kelas',lesson_id) returning id into material_id;
+ begin insert into public.homework_tasks(user_id,student_id,title) values(u,foreign_student,'Cross owner');raise exception 'Foreign student allowed';exception when others then if sqlerrm='Foreign student allowed' then raise;end if;end;
+ begin update public.learning_materials set files=jsonb_build_array(jsonb_build_object('name','x.pdf','size',1,'path',other_u||'/x.pdf')) where id=material_id;raise exception 'Foreign file attached';exception when insufficient_privilege then null;end;
+ begin update public.learning_materials set user_id=other_u where id=material_id;raise exception 'Resource reassigned';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub',other_u::text,true);
+ if exists(select 1 from public.homework_tasks where id=task_id) or exists(select 1 from public.learning_materials where id=material_id) then raise exception 'Teacher isolation failed';end if;
+ perform set_config('request.jwt.claim.sub',u::text,true);
+ update public.homework_tasks set status='assigned' where id=task_id;
+ if (select completed_at from public.homework_tasks where id=task_id) is not null then raise exception 'Reassign failed';end if;
+ delete from public.homework_tasks where id=task_id;
+ if (select homework from public.sessions where id=lesson_id) is not null then raise exception 'Deleted task remains in session';end if;
+ if not exists(select 1 from public.attendance where session_id=lesson_id) then raise exception 'Attendance lost';end if;
+ perform set_config('role','postgres',true);
+ if (select public from storage.buckets where id='teaching-files') then raise exception 'Bucket public';end if;
+end $$;
+rollback;

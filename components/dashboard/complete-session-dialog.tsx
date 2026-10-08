@@ -55,6 +55,7 @@ export function CompleteSessionDialog({
       sub_material: "",
       learning_notes: "",
       homework: "",
+      homework_due_date: null,
       score: null,
       progress_notes: "",
     },
@@ -148,6 +149,7 @@ export function CompleteSessionDialog({
                 </FormItem>
               )}
             />
+            <FormField control={form.control} name="homework_due_date" render={({field}) => <FormItem><FormLabel>Tenggat PR</FormLabel><FormControl><Input type="date" value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur}/></FormControl><FormMessage/></FormItem>}/>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}

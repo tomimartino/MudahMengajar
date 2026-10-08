@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { formatInTimeZone } from "date-fns-tz";
 
 export interface MonthlyPayment {
   payment_date: string;
@@ -32,14 +33,22 @@ export function aggregateMonthly(payments: MonthlyPayment[]): Map<string, MonthA
 
 export interface MonthlyInvoice {
   created_at: string;
+  due_date: string | null;
   amount: number | string;
 }
 
-/** Estimasi pendapatan per bulan: total nominal tagihan (sudah & belum bayar), dikunci "YYYY-MM" dari created_at. */
-export function aggregateInvoiceMonthly(invoices: MonthlyInvoice[]): Map<string, number> {
+/** Tagihan mengikuti bulan jatuh tempo; tanpa jatuh tempo, gunakan bulan dibuat di zona waktu guru. */
+export function invoiceMonthKey(invoice: Pick<MonthlyInvoice, "due_date" | "created_at">, timezone = "Asia/Jakarta"): string {
+  return invoice.due_date
+    ? invoice.due_date.slice(0, 7)
+    : formatInTimeZone(invoice.created_at, timezone, "yyyy-MM");
+}
+
+/** Estimasi pendapatan per bulan: seluruh nominal tagihan, sudah maupun belum dibayar. */
+export function aggregateInvoiceMonthly(invoices: MonthlyInvoice[], timezone = "Asia/Jakarta"): Map<string, number> {
   const map = new Map<string, number>();
   for (const inv of invoices) {
-    const key = inv.created_at.slice(0, 7);
+    const key = invoiceMonthKey(inv, timezone);
     map.set(key, (map.get(key) ?? 0) + Number(inv.amount));
   }
   return map;
