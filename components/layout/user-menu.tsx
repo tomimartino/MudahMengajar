@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, ChevronDown, LogOut, Settings, ShieldCheck, HeartHandshake } from "lucide-react";
+import { BadgeCheck, ChevronDown, LogOut, Settings, ShieldCheck, HeartHandshake, ArrowRightLeft } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { navigateAfterAccountChange } from "@/lib/auth/account-navigation";
 import { logoutAction } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,6 +27,16 @@ export function UserMenu({
   avatarUrl?: string | null;
   isAdmin?: boolean;
 }) {
+  const [pending, setPending] = useState(false);
+  async function logout() {
+    setPending(true);
+    try {
+      const result = await logoutAction();
+      if (!result.ok) { toast.error(result.error); return; }
+      await navigateAfterAccountChange("/login");
+    } catch { toast.error("Akun belum dapat dikeluarkan."); }
+    finally { setPending(false); }
+  }
   const initials = name
     .split(" ")
     .map((p) => p[0])
@@ -63,11 +76,11 @@ export function UserMenu({
             <Settings className="size-4" /> Pengaturan
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/settings#akun"><ArrowRightLeft className="size-4" />Pindah Akun</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => {
-            void logoutAction();
-          }}
+          disabled={pending}
+          onClick={() => void logout()}
           className="text-destructive focus:text-destructive"
         >
           <LogOut className="size-4" /> Keluar

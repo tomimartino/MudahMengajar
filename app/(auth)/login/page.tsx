@@ -6,8 +6,8 @@ export const metadata: Metadata = { title: "Masuk" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; deleted?: string }>;
 }) {
-  const { next } = await searchParams;
-  return <LoginForm next={next} />;
+  const { next, deleted } = await searchParams;
+  return <div className="space-y-5">{deleted === "1" && <p role="status" className="rounded-xl bg-muted p-3 text-sm">Akun berhasil dihapus.</p>}<LoginForm next={next} /></div>;
 }

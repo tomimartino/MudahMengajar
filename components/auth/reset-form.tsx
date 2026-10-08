@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,10 +17,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { navigateAfterAccountChange } from "@/lib/auth/account-navigation";
 
 export function ResetForm() {
   const [pending, setPending] = useState(false);
-  const router = useRouter();
   const form = useForm<ResetInput>({
     resolver: zodResolver(resetSchema) as unknown as Resolver<ResetInput>,
     defaultValues: { password: "", confirmPassword: "" },
@@ -36,7 +35,7 @@ export function ResetForm() {
       return;
     }
     toast.success("Kata sandi berhasil diubah.");
-    router.push("/login");
+    await navigateAfterAccountChange();
   }
 
   return (

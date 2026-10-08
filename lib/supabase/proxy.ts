@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headersToSet) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -34,6 +34,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
+          Object.entries(headersToSet ?? {}).forEach(([name, value]) => supabaseResponse.headers.set(name, value));
         },
       },
     }
@@ -43,6 +44,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  function redirectWithSession(url: URL) {
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
+
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
@@ -51,7 +59,7 @@ export async function updateSession(request: NextRequest) {
     const access=data as unknown as AccountAccess|null;
     if(error||!access||access.status==="suspended"||(access.maintenance&&!access.role&&!pathname.startsWith("/admin"))){
       const url=request.nextUrl.clone();url.pathname=access?.maintenance&&access.status!=="suspended"?"/maintenance":"/account-suspended";url.search="";
-      return NextResponse.redirect(url);
+      return redirectWithSession(url);
     }
   }
 
@@ -60,14 +68,14 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/login";
     url.search = "";
     if (pathname !== "/") url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
-  if (user && ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname)) {
+  if (user && ["/login", "/register"].includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
   return supabaseResponse;

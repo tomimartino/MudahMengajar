@@ -2,6 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { rememberActiveAccount, readSavedAccounts, writeSavedAccounts } from "@/lib/auth/account-vault";
+import { safeAuthNext } from "@/lib/auth/redirect";
+import { hasRecentPasswordRecovery } from "@/lib/auth/password-recovery";
 import { actionError, fail, ok } from "@/lib/actions/helpers";
 import { getOrigin } from "@/lib/utils/origin";
 import {
@@ -12,7 +15,7 @@ import {
 } from "@/lib/validations/auth";
 import type { ActionResult } from "@/lib/actions/helpers";
 
-export async function loginAction(input: unknown): Promise<ActionResult> {
+export async function loginAction(input: unknown): Promise<ActionResult<{ next: string }>> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
 
@@ -21,7 +24,7 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
     input && typeof input === "object" && "next" in input
       ? String((input as Record<string, unknown>).next ?? "")
       : "";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
+  const next = safeAuthNext(rawNext);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
@@ -35,8 +38,8 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
     }
     return fail("Email atau kata sandi salah.");
   }
-
-  redirect(next);
+  await rememberActiveAccount(supabase);
+  return ok({ next });
 }
 
 export async function registerAction(input: unknown): Promise<ActionResult> {
@@ -65,15 +68,21 @@ export async function registerAction(input: unknown): Promise<ActionResult> {
   }
 
   // Konfirmasi email dinonaktifkan → langsung dapat sesi, masuk ke dashboard.
-  if (data.session) redirect("/dashboard");
+  if (data.session) {
+    await rememberActiveAccount(supabase);
+    redirect("/dashboard");
+  }
 
   return ok();
 }
 
-export async function logoutAction(): Promise<void> {
+export async function logoutAction(): Promise<ActionResult> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error) return fail("Akun belum dapat dikeluarkan. Coba lagi.");
+  await writeSavedAccounts((await readSavedAccounts()).filter((entry) => entry.id !== user?.id));
+  return ok();
 }
 
 export async function forgotPasswordAction(input: unknown): Promise<ActionResult> {
@@ -95,7 +104,12 @@ export async function resetPasswordAction(input: unknown): Promise<ActionResult>
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Input tidak valid.");
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return fail("Tautan pemulihan sudah berakhir. Minta tautan baru melalui Lupa Kata Sandi.");
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  if (claimsError || !hasRecentPasswordRecovery(claimsData?.claims, user.id)) return fail("Buka tautan pemulihan dari email, atau gunakan Ganti Kata Sandi di Pengaturan.");
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return fail(actionError(error));
+  await rememberActiveAccount(supabase);
   return ok();
 }

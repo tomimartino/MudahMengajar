@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { BillingSettingsForm } from "@/components/settings/billing-settings-form";
@@ -9,7 +7,10 @@ import { LogoutButton } from "@/components/settings/logout-button";
 import { PushSettings } from "@/components/settings/push-settings";
 import { ThemeSettings } from "@/components/settings/theme-settings";
 import { ReviewForm } from "@/components/settings/review-form";
-import { Button } from "@/components/ui/button";
+import { AccountSwitcher } from "@/components/settings/account-switcher";
+import { ChangePasswordDialog } from "@/components/settings/change-password-dialog";
+import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
+import type { AccountAccess } from "@/types/admin.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Pengaturan" };
@@ -28,6 +29,7 @@ export default async function SettingsPage() {
 
   const { data: review, error: reviewError } = await supabase.from("app_reviews")
     .select("*").eq("user_id", user!.id).maybeSingle();
+  const { data: accountAccess } = await supabase.rpc("get_account_access");
 
   return (
     <div>
@@ -100,7 +102,7 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card id="akun" className="scroll-mt-24">
           <CardHeader>
             <CardTitle className="text-base">Akun</CardTitle>
           </CardHeader>
@@ -110,15 +112,13 @@ export default async function SettingsPage() {
                 <p className="text-sm font-medium">Email</p>
                 <p className="text-sm text-muted-foreground">{user!.email}</p>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/forgot-password">
-                  <KeyRound className="size-4" /> Ganti Kata Sandi
-                </Link>
-              </Button>
+              <ChangePasswordDialog />
             </div>
+            <div className="border-t pt-4"><AccountSwitcher /></div>
             <div className="border-t pt-4">
               <LogoutButton />
             </div>
+            <div className="border-t pt-4"><DeleteAccountDialog email={user!.email ?? ""} isAdmin={Boolean((accountAccess as unknown as AccountAccess | null)?.role)} /></div>
           </CardContent>
         </Card>
       </div>

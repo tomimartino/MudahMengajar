@@ -17,6 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { AccountSwitcher } from "@/components/settings/account-switcher";
+import { navigateAfterAccountChange } from "@/lib/auth/account-navigation";
 
 export function LoginForm({ next }: { next?: string }) {
   const [pending, setPending] = useState(false);
@@ -27,11 +29,12 @@ export function LoginForm({ next }: { next?: string }) {
 
   async function onSubmit(values: LoginInput) {
     setPending(true);
-    const result = await loginAction({ ...values, next });
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      setPending(false);
-    }
+    try {
+      const result = await loginAction({ ...values, next });
+      if (!result.ok) { toast.error(result.error); return; }
+      await navigateAfterAccountChange(result.data?.next);
+    } catch { toast.error("Belum dapat masuk. Coba lagi."); }
+    finally { setPending(false); }
   }
 
   return (
@@ -72,6 +75,7 @@ export function LoginForm({ next }: { next?: string }) {
           </SubmitButton>
         </form>
       </Form>
+      <AccountSwitcher showAdd={false} />
       <div className="space-y-2 text-center text-sm">
         <p>
           <Link href="/forgot-password" className="text-primary hover:underline">

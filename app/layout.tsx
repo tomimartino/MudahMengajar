@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteConfigProvider } from "@/components/site-config-provider";
 import { getSiteConfig } from "@/lib/admin";
+import { AccountSessionSync } from "@/components/auth/account-session-sync";
 import "./globals.css";
 import "./appearance.css";
 
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="id" className={`${jakartaSans.variable} ${playfulFont.variable} ${pixelFont.variable} ${terminalFont.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        <AccountSessionSync />
         <ThemeProvider>
           <SiteConfigProvider config={config}><TooltipProvider delayDuration={200}>{children}</TooltipProvider></SiteConfigProvider>
           <Toaster richColors position="top-center" />
