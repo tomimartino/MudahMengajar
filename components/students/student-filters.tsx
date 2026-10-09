@@ -38,6 +38,7 @@ export function StudentFilters({ subjects }: { subjects: { id: string; name: str
       <div className="relative">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          key={q}
           placeholder="Cari nama siswa, sekolah, kelas, atau wali..."
           defaultValue={q}
           className="pl-9"

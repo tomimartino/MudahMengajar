@@ -64,7 +64,9 @@ export async function updateSessionAction(
   const d = parsed.data;
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return fail("Tidak terautentikasi.");
+  const { data, error } = await supabase
     .from("sessions")
     .update({
       duration_minutes: d.duration_minutes,
@@ -76,8 +78,9 @@ export async function updateSessionAction(
       score: d.score === null ? null : String(d.score),
       progress_notes: d.progress_notes.trim() || null,
     })
-    .eq("id", sessionId);
+    .eq("id", sessionId).eq("user_id", user.id).select("id").maybeSingle();
   if (error) return fail(actionError(error));
+  if (!data) return fail("Pertemuan tidak ditemukan atau sudah dihapus.");
 
   revalidatePath("/", "layout");
   return ok();

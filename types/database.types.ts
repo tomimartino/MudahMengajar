@@ -21,6 +21,7 @@ export type Database = {
           address: string | null;
           avatar_url: string | null;
           teaching_levels: string[];
+          profile_subjects: string[] | null;
           learning_mode: string;
           slug: string | null;
           timezone: string;
@@ -40,6 +41,7 @@ export type Database = {
           address?: string | null;
           avatar_url?: string | null;
           teaching_levels?: string[];
+          profile_subjects?: string[] | null;
           learning_mode?: string;
           slug?: string | null;
           timezone?: string;
@@ -58,6 +60,7 @@ export type Database = {
           address: string | null;
           avatar_url: string | null;
           teaching_levels: string[];
+          profile_subjects: string[] | null;
           learning_mode: string;
           slug: string | null;
           timezone: string;
@@ -688,6 +691,13 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      save_student_bundle: {
+        Args: { p_data: Json; p_due_date: string | null; p_period_label: string; p_schedules: Json;
+          p_package_settings: Json; p_student_id?: string | null };
+        Returns: string;
+      };
+      update_student_identity: { Args: { p_student_id: string; p_data: Json }; Returns: undefined };
+      cancel_learning_schedule: { Args: { p_schedule_id: string; p_note?: string | null }; Returns: undefined };
       update_student_package: {
         Args: { p_student_id: string; p_package_id: string; p_total_sessions: number;
           p_per_session_rate: number; p_price: number; p_settings: Json; };

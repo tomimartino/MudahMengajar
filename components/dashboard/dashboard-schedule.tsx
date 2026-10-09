@@ -65,9 +65,7 @@ export function DashboardSchedule({
   basePath?: string;
 }) {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState<string>(
-    format(toZonedTime(new Date(), timezone), "yyyy-MM-dd")
-  );
+  const selectedDate = date;
   const [completing, setCompleting] = useState<DashboardScheduleItem | null>(null);
   const [editing, setEditing] = useState<DashboardScheduleItem | null>(null);
   const [detail, setDetail] = useState<DashboardScheduleItem | null>(null);
@@ -119,13 +117,15 @@ export function DashboardSchedule({
 
   // Jumlah murid di kalender tidak menghitung jadwal yang dibatalkan.
   const countsByDay = useMemo(() => {
-    const map = new Map<string, number>();
+    const studentsByDay = new Map<string, Set<string>>();
     for (const s of schedules) {
       if (s.status === "cancelled") continue;
       const key = format(toZonedTime(s.start_at, timezone), "yyyy-MM-dd");
-      map.set(key, (map.get(key) ?? 0) + 1);
+      const students = studentsByDay.get(key) ?? new Set<string>();
+      students.add(s.student_id);
+      studentsByDay.set(key, students);
     }
-    return map;
+    return new Map([...studentsByDay].map(([day, students]) => [day, students.size]));
   }, [schedules, timezone]);
 
   const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
@@ -153,8 +153,7 @@ export function DashboardSchedule({
             variant="ghost"
             size="sm"
             onClick={() => {
-              setParam("date", format(new Date(), "yyyy-MM-dd"));
-              setSelectedDate(format(toZonedTime(new Date(), timezone), "yyyy-MM-dd"));
+              setParam("date", format(toZonedTime(new Date(), timezone), "yyyy-MM-dd"));
             }}
           >
             Hari Ini
@@ -195,7 +194,7 @@ export function DashboardSchedule({
             return (
               <button
                 key={dayKey(d)}
-                onClick={() => setSelectedDate(dayKey(d))}
+                onClick={() => setParam("date", dayKey(d))}
                 className={cn(
                   "min-h-16 border-b border-r p-1 text-left transition-colors hover:bg-muted/50 sm:min-h-20 sm:p-2",
                   !isSameMonth(d, current) && "bg-muted/30",
@@ -229,7 +228,7 @@ export function DashboardSchedule({
             return (
               <button
                 key={dayKey(d)}
-                onClick={() => setSelectedDate(dayKey(d))}
+                onClick={() => setParam("date", dayKey(d))}
                 className={cn(
                   "rounded-xl border bg-muted/20 p-3 text-left transition-colors hover:border-primary/50",
                   isSelected && "border-primary bg-primary/10",

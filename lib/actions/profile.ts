@@ -43,15 +43,17 @@ export async function updatePortfolioAction(input: unknown): Promise<ActionResul
     const existingNames = new Set((existing ?? []).map((s) => s.name));
     for (const name of d.subjects) {
       if (!existingNames.has(name.trim())) {
-        await supabase
+        const { error: subjectError } = await supabase
           .from("subjects")
           .upsert({ user_id: user.id, name: name.trim() }, { onConflict: "user_id,name" });
+        if (subjectError) throw subjectError;
       }
     }
 
     const { error } = await supabase
       .from("profiles")
       .update({
+        profile_subjects: [...new Set(d.subjects.map((name) => name.trim()))],
         full_name: d.full_name.trim(),
         whatsapp: d.whatsapp.trim() || null,
         timezone: d.timezone,

@@ -34,7 +34,8 @@ export interface PackageRow {
   id: string;
   total_sessions: number;
   price: number;
-  start_date: string;
+  start_date: string | null;
+  due_date: string;
   status: string;
   sessions_used: number;
 }
@@ -65,7 +66,7 @@ export function PackagePanel({
               {packages.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.total_sessions}x Pertemuan · <AmountText value={p.price} /> ·{" "}
-                  <DateText value={p.start_date} tz={timezone} variant="shortDate" />
+                  <DateText value={p.start_date ?? p.due_date} tz={timezone} variant="shortDate" />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -81,7 +82,8 @@ export function PackagePanel({
                   {selected.total_sessions}x Pertemuan · <AmountText value={selected.price} />
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Mulai <DateText value={selected.start_date} tz={timezone} />
+                  {selected.start_date && <>Mulai <DateText value={selected.start_date} tz={timezone} /> · </>}
+                  Jatuh tempo <DateText value={selected.due_date} tz={timezone} />
                   {selected.status === "active" ? (
                     <>
                       {" "}· Terpakai {selected.sessions_used} · Sisa{" "}
@@ -133,8 +135,8 @@ export function PackagePanel({
                 {packages.map((p) => (
                   <div key={p.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
                     <span>
-                      {p.total_sessions}x · <AmountText value={p.price} /> · mulai{" "}
-                      <DateText value={p.start_date} tz={timezone} />
+                      {p.total_sessions}x · <AmountText value={p.price} /> · {p.start_date ? "mulai " : "jatuh tempo "}
+                      <DateText value={p.start_date ?? p.due_date} tz={timezone} />
                     </span>
                     <StatusBadge
                       tone={p.status === "active" ? "green" : p.status === "completed" ? "gray" : "red"}

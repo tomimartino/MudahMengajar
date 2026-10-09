@@ -14,16 +14,14 @@ import {
 } from "@/components/ui/select";
 
 export function ReportFilters({
-  students,
+  students, from, to, student,
 }: {
   students: { id: string; full_name: string }[];
+  from: string; to: string; student: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const from = searchParams.get("from") ?? "";
-  const to = searchParams.get("to") ?? "";
-  const student = searchParams.get("student") ?? "";
 
   function apply(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -35,18 +33,20 @@ export function ReportFilters({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div>
-        <Label className="mb-1 block text-xs">Dari</Label>
+        <Label htmlFor="report-from" className="mb-1 block text-xs">Dari</Label>
         <Input
           type="date"
+          id="report-from"
           value={from}
           onChange={(e) => apply("from", e.target.value)}
           className="w-40"
         />
       </div>
       <div>
-        <Label className="mb-1 block text-xs">Sampai</Label>
+        <Label htmlFor="report-to" className="mb-1 block text-xs">Sampai</Label>
         <Input
           type="date"
+          id="report-to"
           value={to}
           onChange={(e) => apply("to", e.target.value)}
           className="w-40"
@@ -68,7 +68,7 @@ export function ReportFilters({
           </SelectContent>
         </Select>
       </div>
-      {(from || to || student) && (
+      {(searchParams.get("from") || searchParams.get("to") || student) && (
         <Button
           variant="ghost"
           size="sm"

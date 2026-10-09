@@ -1,3 +1,4 @@
+import { resolveReportFilters } from "@/lib/reports/filters";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildReport, type ReportType } from "@/lib/reports/queries";
@@ -17,13 +18,6 @@ export async function GET(request: Request) {
     ? (typeParam as ReportType)
     : "students";
 
-  const now = new Date();
-  const from =
-    searchParams.get("from") ?? new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const to =
-    searchParams.get("to") ?? new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  const student = searchParams.get("student") ?? "";
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,6 +26,9 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Tidak terautentikasi." }, { status: 401 });
   }
+
+  const { data: profile } = await supabase.from("profiles").select("timezone").eq("id", user!.id).single();
+  const { from, to, student } = resolveReportFilters(Object.fromEntries(searchParams), profile?.timezone ?? "Asia/Jakarta");
 
   const report = await buildReport(supabase, user.id, type, { from, to, student });
   const csv = toCSV(report.rows);

@@ -144,21 +144,21 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Catat Pembayaran</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="min-w-0 space-y-4">
             <FormField
               control={form.control}
               name="student_id"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Siswa</FormLabel>
                   <Select onValueChange={selectStudent} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full min-w-0 [&_[data-slot=select-value]]:truncate">
                         <SelectValue placeholder="Pilih siswa" />
                       </SelectTrigger>
                     </FormControl>
@@ -179,14 +179,14 @@ export function PaymentDialog({
               control={form.control}
               name="invoice_id"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Tagihan (opsional)</FormLabel>
                   <Select
                     onValueChange={(v) => selectInvoice(v === "none" ? null : v)}
                     value={field.value ?? "none"}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full min-w-0 [&_[data-slot=select-value]]:truncate">
                         <SelectValue placeholder="Tanpa tagihan" />
                       </SelectTrigger>
                     </FormControl>
@@ -205,16 +205,16 @@ export function PaymentDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Jenis</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full min-w-0 [&_[data-slot=select-value]]:truncate">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -234,11 +234,11 @@ export function PaymentDialog({
                 control={form.control}
                 name="method"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Metode</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full min-w-0 [&_[data-slot=select-value]]:truncate">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -256,12 +256,12 @@ export function PaymentDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Nominal</FormLabel>
                     <FormControl>
                       <Input placeholder="500.000" inputMode="numeric" {...field} />
@@ -274,10 +274,10 @@ export function PaymentDialog({
                 control={form.control}
                 name="payment_date"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Tanggal</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="min-w-0 max-w-full" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -289,7 +289,7 @@ export function PaymentDialog({
               control={form.control}
               name="notes"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Catatan</FormLabel>
                   <FormControl>
                     <Textarea rows={2} {...field} />

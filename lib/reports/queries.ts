@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { monthLabel } from "@/lib/finance/queries";
+import { invoiceBalances, loadBillingLedger } from "@/lib/finance/data";
 
 export interface ReportFilters {
   from: string;
@@ -53,7 +54,7 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
     .order("full_name");
   if (f.student) studentsQuery.eq("id", f.student);
 
-  const [{ data: students }, { data: links }, { data: subjects }, { data: sessions }, { data: attendance }, { data: packages }, { data: openInvoices }] =
+  const [{ data: students }, { data: links }, { data: subjects }, { data: sessions }, { data: attendance }, { data: packages }, ledger] =
     await Promise.all([
       studentsQuery,
       supabase.from("student_subjects").select("student_id, subject_id").eq("user_id", userId),
@@ -67,18 +68,13 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
         .lte("session_date", f.to),
       supabase
         .from("attendance")
-        .select("student_id, status, sessions(session_date)")
+        .select("student_id, status, sessions!inner(session_date, status)")
         .eq("user_id", userId)
         .gte("sessions.session_date", f.from)
-        .lte("sessions.session_date", f.to),
+        .lte("sessions.session_date", f.to)
+        .eq("sessions.status", "completed"),
       supabase.from("student_packages").select("student_id, total_sessions, sessions_used").eq("user_id", userId).eq("status", "active"),
-      supabase
-        .from("invoices")
-        .select("student_id, amount")
-        .eq("user_id", userId)
-        .in("status", ["unpaid", "partial"])
-        .gte("due_date", f.from)
-        .lte("due_date", f.to),
+      loadBillingLedger(supabase, userId, f.student || undefined),
     ]);
 
   const subjectMap = new Map((subjects ?? []).map((s) => [s.id, s.name]));
@@ -97,7 +93,11 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
   const pkgMap = new Map<string, number>();
   for (const p of packages ?? []) pkgMap.set(p.student_id, p.total_sessions - p.sessions_used);
   const openSum = new Map<string, number>();
-  for (const i of openInvoices ?? []) openSum.set(i.student_id, (openSum.get(i.student_id) ?? 0) + Number(i.amount));
+  const balances = invoiceBalances(ledger.invoices, ledger.payments);
+  for (const i of ledger.invoices) {
+    if (!i.due_date || i.due_date < f.from || i.due_date > f.to || i.status === "paid") continue;
+    openSum.set(i.student_id, (openSum.get(i.student_id) ?? 0) + (balances.get(i.id) ?? 0));
+  }
 
   const rows = (students ?? []).map((s) => {
     const total = sessionCount.get(s.id) ?? 0;

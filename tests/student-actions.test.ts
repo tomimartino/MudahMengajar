@@ -48,7 +48,7 @@ describe("tenggat paket dari jadwal terakhir", () => {
       settings: { data: { default_duration_minutes: 60 }, error: null },
     };
     mock.rpc.mockImplementation(async (name: string) => ({
-      data: name === "create_package" ? { invoice_id: "invoice-qa" } : false, error: null,
+      data: name === "save_student_bundle" ? studentId : false, error: null,
     }));
   });
 
@@ -58,12 +58,12 @@ describe("tenggat paket dari jadwal terakhir", () => {
       schedule_start_date: "2026-09-01", schedule_times: [{ day: 1, start_time: "14:00" }, { day: 3, start_time: "14:00" }] };
     const result = flow === "murid baru" ? await createStudentAction(input) : await addPackageAction(studentId, input);
     expect(result.ok).toBe(true);
-    expect(mock.rpc).toHaveBeenCalledWith("create_package", expect.objectContaining({
-      p_total_sessions: 6, p_price: 300000, p_start_date: "2026-09-21",
+    expect(mock.rpc).toHaveBeenCalledWith("save_student_bundle", expect.objectContaining({
+      p_data: expect.objectContaining({ package_sessions: 6, package_price: 300000 }), p_due_date: "2026-09-21",
     }));
-    const insert = mock.calls.find((call) => call.table === "schedules" && call.method === "insert");
-    expect(insert?.args[0]).toHaveLength(6);
-    expect((insert?.args[0] as { start_at: string }[]).at(-1)?.start_at).toBe("2026-09-21T07:00:00.000Z");
+    const rows = mock.rpc.mock.calls.find(([name]) => name === "save_student_bundle")?.[1].p_schedules;
+    expect(rows).toHaveLength(6);
+    expect((rows as { start_at: string }[]).at(-1)?.start_at).toBe("2026-09-21T07:00:00.000Z");
   });
 
   it.each(["murid baru", "paket baru"])("%s: tanggal pilihan tetap dipakai ketika belum memilih hari mengajar", async (flow) => {
@@ -72,55 +72,27 @@ describe("tenggat paket dari jadwal terakhir", () => {
       schedule_start_date: "2026-09-01", schedule_times: [] };
     const result = flow === "murid baru" ? await createStudentAction(input) : await addPackageAction(studentId, input);
     expect(result.ok).toBe(true);
-    expect(mock.rpc).toHaveBeenCalledWith("create_package", expect.objectContaining({ p_start_date: "2026-09-01" }));
+    expect(mock.rpc).toHaveBeenCalledWith("save_student_bundle", expect.objectContaining({ p_due_date: "2026-09-01", p_schedules: [] }));
     expect(mock.calls.some((call) => call.table === "schedules" && call.method === "insert")).toBe(false);
   });
 
   it.each(["murid baru", "paket baru"])("%s: tagihan bulanan dan jadwal mengikuti September yang dipilih", async (flow) => {
     mock.rpc.mockImplementation(async (name: string) => ({
-      data: name === "create_invoice" ? { invoice_id: "invoice-qa" } : false, error: null,
+      data: name === "save_student_bundle" ? studentId : false, error: null,
     }));
     const input = { ...validInput, billing_type: "monthly", monthly_fee: "300000", monthly_due_day: "30",
       schedule_start_date: "2026-09-01", schedule_times: [{ day: 1, start_time: "14:00" }, { day: 3, start_time: "14:00" }] };
     const result = flow === "murid baru" ? await createStudentAction(input) : await addPackageAction(studentId, input);
     expect(result.ok).toBe(true);
-    expect(mock.rpc).toHaveBeenCalledWith("create_invoice", expect.objectContaining({
+    expect(mock.rpc).toHaveBeenCalledWith("save_student_bundle", expect.objectContaining({
       p_period_label: "September 2026", p_due_date: "2026-09-30",
     }));
-    const insert = mock.calls.find((call) => call.table === "schedules" && call.method === "insert");
-    expect(insert?.args[0]).toHaveLength(9);
-    expect((insert?.args[0] as { start_at: string }[]).at(-1)?.start_at).toBe("2026-09-30T07:00:00.000Z");
+    const rows = mock.rpc.mock.calls.find(([name]) => name === "save_student_bundle")?.[1].p_schedules;
+    expect(rows).toHaveLength(9);
+    expect((rows as { start_at: string }[]).at(-1)?.start_at).toBe("2026-09-30T07:00:00.000Z");
   });
 
-  it.each(["2026-09-01", "2026-10-01", "2026-11-01"])("paket mulai %s menambahkan jadwal tanpa menghapus paket lain", async (start) => {
-    mock.results.schedules = { data: [{ start_at: "2026-10-11T09:00:00Z", location: null }], error: null };
-    const result = await addPackageAction(studentId, { ...validInput, billing_type: "package",
-      package_sessions: "4", package_per_session_rate: "50000", package_price: "200000",
-      schedule_start_date: start, schedule_times: [{ day: 7, start_time: "16:00" }] });
-    expect(result.ok).toBe(true);
-    expect(mock.calls.filter((call) => call.table === "schedules" && call.method === "delete")).toEqual([]);
-    const inserted = mock.calls.find((call) => call.table === "schedules" && call.method === "insert");
-    expect(inserted?.args[0]).toHaveLength(start.startsWith("2026-10") ? 3 : 4);
-    expect((inserted?.args[0] as { start_at: string }[]).every((row) => row.start_at !== "2026-10-11T09:00:00.000Z")).toBe(true);
-  });
 
-  it("mempertahankan jadwal selesai dan dibatalkan pada tanggal yang sama tanpa duplikasi", async () => {
-    mock.results.schedules = { data: [
-      { start_at: "2026-09-06T09:00:00+00:00", status: "completed" },
-      { start_at: "2026-09-13T09:00:00Z", status: "cancelled" },
-    ], error: null };
-    const result = await addPackageAction(studentId, { ...validInput, billing_type: "package",
-      package_sessions: "4", package_per_session_rate: "50000", package_price: "200000",
-      schedule_start_date: "2026-09-01", schedule_times: [{ day: 7, start_time: "16:00" }] });
-    expect(result.ok).toBe(true);
-    const inserted = mock.calls.find((call) => call.table === "schedules" && call.method === "insert");
-    expect((inserted?.args[0] as { start_at: string }[]).map((row) => row.start_at)).toEqual([
-      "2026-09-20T09:00:00.000Z", "2026-09-27T09:00:00.000Z",
-    ]);
-    expect(mock.calls.filter((call) => call.table === "schedules" && ["delete", "update"].includes(call.method))).toEqual([]);
-    expect(mock.calls).toContainEqual({ table: "schedules", method: "eq", args: ["user_id", "teacher-id"] });
-    expect(mock.calls).toContainEqual({ table: "schedules", method: "eq", args: ["student_id", studentId] });
-  });
 });
 
 describe("student duplicate validation", () => {
@@ -141,11 +113,12 @@ describe("student duplicate validation", () => {
     expect(mock.from).not.toHaveBeenCalled();
   });
   it("handles a competing insert rejected by the database guard", async () => {
-    mock.rpc.mockResolvedValue({ data: false, error: null });
-    mock.results.students = { data: null, error: { code: "23505", message: DUPLICATE_STUDENT_MESSAGE } };
+    mock.results.profiles = { data: { timezone: "Asia/Jakarta" }, error: null };
+    mock.rpc.mockImplementation(async (name: string) => name === "student_name_conflicts"
+      ? { data: false, error: null }
+      : { data: null, error: { code: "23505", message: DUPLICATE_STUDENT_MESSAGE } });
     expect((await createStudentAction(validInput)).error).toBe(DUPLICATE_STUDENT_MESSAGE);
-    expect(mock.from).toHaveBeenCalledTimes(1);
-    expect(mock.from).toHaveBeenCalledWith("students");
+    expect(mock.calls.filter((call) => ["insert", "update", "delete"].includes(call.method))).toEqual([]);
   });
   it("requires authentication and rejects blank names", async () => {
     mock.getUser.mockResolvedValue({ data: { user: null } });

@@ -101,7 +101,7 @@ export default async function DashboardPage({
   const { data: schedules } = await supabase
     .from("schedules")
     .select(
-      "id, start_at, end_at, status, learning_mode, location, notes, recurrence_rule, student_id, students(full_name, grade_level, school_level), subjects(name)"
+      "id, start_at, end_at, status, learning_mode, location, notes, recurrence_rule, student_id, students!inner(full_name, grade_level, school_level, status, deleted_at), subjects(name)"
     )
     .eq("user_id", user!.id)
     .in("status", ["scheduled", "completed", "cancelled"])
@@ -152,7 +152,11 @@ export default async function DashboardPage({
     }
   }
 
-  const items: DashboardScheduleItem[] = (schedules ?? []).map((s) => {
+  const visibleSchedules = (schedules ?? []).filter((s) => {
+    const student = s.students as unknown as { status: string; deleted_at: string | null };
+    return !student.deleted_at && (s.status !== "scheduled" || student.status === "active");
+  });
+  const items: DashboardScheduleItem[] = visibleSchedules.map((s) => {
     const student = s.students as unknown as {
       full_name: string;
       grade_level: string | null;

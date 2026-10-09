@@ -79,9 +79,9 @@ export default async function ProfilePage() {
                     {l}
                   </Badge>
                 ))}
-                {(subjects ?? []).map((s) => (
-                  <Badge key={s.id} variant="secondary" className="font-normal">
-                    {s.name}
+                {(profile.profile_subjects ?? (subjects ?? []).map((s) => s.name)).map((name) => (
+                  <Badge key={name} variant="secondary" className="font-normal">
+                    {name}
                   </Badge>
                 ))}
                 {profile.learning_mode && (
@@ -127,6 +127,7 @@ export default async function ProfilePage() {
                   career_start_year: profile.career_start_year,
                   address: profile.address,
                   teaching_levels: profile.teaching_levels ?? [],
+                  profile_subjects: profile.profile_subjects,
                   learning_mode: profile.learning_mode ?? "offline",
                   slug: profile.slug ?? "",
                 }}

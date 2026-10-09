@@ -1,3 +1,4 @@
+import { resolveReportFilters } from "@/lib/reports/filters";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Download, FileBarChart } from "lucide-react";
@@ -39,17 +40,6 @@ export default async function ReportsPage({
     ? (sp.type as ReportType)
     : "students";
 
-  const now = new Date();
-  const from =
-    typeof sp.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.from)
-      ? sp.from
-      : new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const to =
-    typeof sp.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.to)
-      ? sp.to
-      : new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  const student = typeof sp.student === "string" ? sp.student : "";
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -61,6 +51,9 @@ export default async function ReportsPage({
     .eq("user_id", user!.id)
     .is("deleted_at", null)
     .order("full_name");
+
+  const { data: profile } = await supabase.from("profiles").select("timezone").eq("id", user!.id).single();
+  const { from, to, student } = resolveReportFilters(sp, profile?.timezone ?? "Asia/Jakarta");
 
   const report = await buildReport(supabase, user!.id, type, { from, to, student });
 
@@ -97,7 +90,7 @@ export default async function ReportsPage({
       </div>
 
       <div className="mb-4">
-        <ReportFilters students={students ?? []} />
+        <ReportFilters students={students ?? []} from={from} to={to} student={student} />
       </div>
 
       {report.rows.length === 0 ? (

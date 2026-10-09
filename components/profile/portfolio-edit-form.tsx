@@ -54,6 +54,7 @@ export function PortfolioEditButton({
     career_start_year: number | null;
     address: string | null;
     teaching_levels: string[];
+    profile_subjects: string[] | null;
     learning_mode: string;
     slug: string;
   };
@@ -70,7 +71,7 @@ export function PortfolioEditButton({
       full_name: initial.full_name,
       whatsapp: initial.whatsapp ?? "",
       timezone: initial.timezone,
-      subjects: subjects.map((s) => s.name),
+      subjects: initial.profile_subjects ?? subjects.map((s) => s.name),
       teaching_levels: initial.teaching_levels ?? [],
       learning_mode: (initial.learning_mode as "offline" | "online" | "hybrid") ?? "offline",
       slug: initial.slug ?? "",

@@ -19,18 +19,21 @@ import { PackagePanel, type PackageRow } from "@/components/students/package-for
 import { CreateInvoiceDialog } from "@/components/payments/invoice-create-dialog";
 import { todayInTz, toDateInput } from "@/lib/utils/date";
 import { LEARNING_MODES } from "@/lib/constants";
+import { invoiceBalances, loadBillingLedger } from "@/lib/finance/data";
 
 // ============================= OVERVIEW =============================
 
 export async function OverviewTab({ studentId, timezone }: { studentId: string; timezone: string }) {
   const supabase = await createClient();
-  const [{ data: sessions }, { data: attendance }, { data: activePkg }, { data: packages }, { data: openInvoices }, { data: nextSched }] =
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const [{ data: sessions }, { data: attendance }, { data: activePkg }, { data: packages }, ledger, { data: nextSched }] =
     await Promise.all([
-      supabase.from("sessions").select("id, session_date, score, status").eq("student_id", studentId).eq("status", "completed"),
+      supabase.from("sessions").select("id, session_date, score, status").eq("student_id", studentId).eq("status", "completed").order("session_date", { ascending: false }).order("id"),
       supabase.from("attendance").select("status").eq("student_id", studentId),
       supabase.from("student_packages").select("*").eq("student_id", studentId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("student_packages").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(10),
-      supabase.from("invoices").select("id, invoice_number, period_label, amount, due_date, status").eq("student_id", studentId).in("status", ["unpaid", "partial"]),
+      loadBillingLedger(supabase, user.id, studentId),
       supabase.from("schedules").select("id, start_at, end_at, status, subject_id, subjects(name)").eq("student_id", studentId).eq("status", "scheduled").gt("start_at", new Date().toISOString()).order("start_at").limit(1).maybeSingle(),
     ]);
 
@@ -40,14 +43,18 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
   const scores = (sessions ?? []).filter((s) => s.score !== null).map((s) => Number(s.score));
   const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const lastSession = (sessions ?? [])[0]?.session_date ?? null;
-  const unpaidTotal = (openInvoices ?? []).reduce((sum, i) => sum + Number(i.amount), 0);
+  const balances = invoiceBalances(ledger.invoices, ledger.payments);
+  const openInvoices = ledger.invoices.filter((i) => i.status !== "paid");
+  const unpaidTotal = openInvoices.reduce((sum, i) => sum + (balances.get(i.id) ?? 0), 0);
   const remaining = activePkg ? activePkg.total_sessions - activePkg.sessions_used : null;
 
   const pkgRows: PackageRow[] = (packages ?? []).map((p) => ({
     id: p.id,
     total_sessions: p.total_sessions,
     price: Number(p.price),
-    start_date: p.start_date,
+    start_date: p.form_settings && typeof p.form_settings === "object" && !Array.isArray(p.form_settings)
+      && typeof p.form_settings.schedule_start_date === "string" ? p.form_settings.schedule_start_date : null,
+    due_date: p.start_date,
     status: p.status,
     sessions_used: p.sessions_used,
   }));
@@ -115,7 +122,7 @@ export async function OverviewTab({ studentId, timezone }: { studentId: string; 
                 <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
                   <div>
                     <p className="font-medium">
-                      {i.period_label ?? i.invoice_number} · <AmountText value={i.amount} />
+                      {i.period_label ?? i.invoice_number} · <AmountText value={balances.get(i.id) ?? 0} />
                     </p>
                     {i.due_date && (
                       <p className="text-xs text-muted-foreground">
