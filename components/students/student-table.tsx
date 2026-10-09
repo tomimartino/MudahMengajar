@@ -15,6 +15,8 @@ import {
 export interface EnrichedStudent {
   id: string;
   full_name: string;
+  teaching_type?: "private" | "group";
+  group_size?: number | null;
   school_level: string;
   grade_level: string;
   school_name: string | null;
@@ -63,6 +65,7 @@ export function StudentTable({
                   {s.full_name}
                 </Link>
                 <p className="text-xs text-muted-foreground">{s.school_name ?? "—"}</p>
+                {s.teaching_type === "group" && <Badge variant="outline" className="mt-1 text-xs">Rombel{s.group_size != null && ` · ${s.group_size} murid`}</Badge>}
               </TableCell>
               <TableCell>
                 {s.school_level === "Umum" ? "Umum" : `Kelas ${s.grade_level} ${s.school_level}`}

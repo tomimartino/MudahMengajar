@@ -12,6 +12,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { addPackageAction, createStudentAction, updateStudentAction } from "@/lib/actions/students";
 import { getEditPackageSetupAction, listEditablePackagesAction, updatePackageAction } from "@/lib/actions/package-edit";
 import { editedPackageDueDate } from "@/lib/utils/package-edit-schedule";
+import { getPackageFormSetupAction } from "@/lib/actions/package-setup";
 
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/)
   .filter((line) => /^[\w]+=/.test(line)).map((line) => {
@@ -51,6 +52,80 @@ afterAll(async () => {
 });
 
 describe("real package action preserves other months", () => {
+  it("creates and edits a group without a headcount, keeping one unchanged bill", async () => {
+    const input = { full_name: "Rombel Uji Tanpa Jumlah", teaching_type: "group", school_level: "SD", grade_level: "4",
+      learning_mode: "offline", status: "active", billing_type: "package", package_sessions: "4",
+      package_per_session_rate: "75000", package_price: "300000", subject_ids: [subjectId],
+      schedule_start_date: "2026-11-01", schedule_times: [{ day: 7, start_time: "16:00" }] };
+    const created = await createStudentAction(input);
+    expect(created.ok, created.error).toBe(true);
+    const id = created.data!.id;
+    const identity = () => must(teacher.from("students").select("teaching_type,group_size").eq("id", id).single());
+    expect(await identity()).toEqual({ teaching_type: "group", group_size: null });
+    const bills = await must(teacher.from("invoices").select("*").eq("student_id", id));
+    expect(bills).toHaveLength(1);
+    expect(Number(bills[0].amount)).toBe(300000);
+    expect((await updateStudentAction(id, { ...input, group_size: "8" })).ok).toBe(true);
+    expect((await updateStudentAction(id, { ...input, group_size: "  " })).ok).toBe(true);
+    expect(await identity()).toEqual({ teaching_type: "group", group_size: null });
+    expect(await must(teacher.from("invoices").select("*").eq("student_id", id))).toEqual(bills);
+    expect((await addPackageAction(id, { ...input, schedule_start_date: "2026-12-01" })).ok).toBe(true);
+    expect(await identity()).toEqual({ teaching_type: "group", group_size: null });
+    expect(await must(teacher.from("invoices").select("id").eq("student_id", id))).toHaveLength(2);
+  });
+  it("creates one group, one invoice, and one set of meetings; adding a package preserves its group identity", async () => {
+    const input = { full_name: "Rombel Uji Kelas 4A", teaching_type: "group", group_size: "6",
+      school_level: "SD", grade_level: "4", learning_mode: "offline", status: "active",
+      parent_name: "Penanggung Jawab Uji", parent_whatsapp: "081234500001", billing_type: "package",
+      package_sessions: "4", package_per_session_rate: "75000", package_price: "300000",
+      subject_ids: [subjectId], schedule_start_date: "2026-11-01", schedule_times: [{ day: 7, start_time: "16:00" }] };
+    const created = await createStudentAction(input);
+    expect(created).toMatchObject({ ok: true });
+    const id = created.data!.id;
+    const row = await must(teacher.from("students").select("teaching_type,group_size,parent_id").eq("id", id).single());
+    expect(row).toMatchObject({ teaching_type: "group", group_size: 6 });
+    expect(row.parent_id).not.toBeNull();
+    const invoices = await must(teacher.from("invoices").select("amount,due_date").eq("student_id", id));
+    expect(invoices).toHaveLength(1);
+    expect(Number(invoices[0].amount)).toBe(300000);
+    expect(invoices[0].due_date).toBe("2026-11-22");
+    const before = await must(teacher.from("schedules").select("id,start_at").eq("student_id", id).order("start_at"));
+    expect(before).toHaveLength(4);
+    const setup = await getPackageFormSetupAction(id);
+    expect(setup.data?.initial).toMatchObject({ id, teaching_type: "group", group_size: 6 });
+    expect((await addPackageAction(id, { ...input, teaching_type: "private", group_size: "100", schedule_start_date: "2026-12-01" })).ok).toBe(true);
+    expect(await must(teacher.from("students").select("teaching_type,group_size").eq("id", id).single()))
+      .toEqual({ teaching_type: "group", group_size: 6 });
+    const after = await must(teacher.from("schedules").select("id,start_at").eq("student_id", id).order("start_at"));
+    expect(after).toHaveLength(8);
+    expect(after.slice(0, 4)).toEqual(before);
+    const payments = await must(teacher.from("invoices").select("amount").eq("student_id", id));
+    expect(payments).toHaveLength(2);
+    expect(payments.every((invoice) => Number(invoice.amount) === 300000)).toBe(true);
+    expect((await createStudentAction({ ...input, full_name: "  ROMBEL   UJI KELAS 4A " })).ok).toBe(false);
+    expect(await must(teacher.from("invoices").select("amount").eq("student_id", id))).toHaveLength(2);
+  });
+
+  it("resizes a group without changing invoices, and rejects invalid sizes and identity type changes", async () => {
+    const input = { full_name: "Rombel Uji Edit", teaching_type: "group", group_size: "4", school_level: "SD", grade_level: "4",
+      learning_mode: "offline", status: "active", billing_type: "monthly", monthly_fee: "400000", monthly_due_day: "30",
+      subject_ids: [subjectId], schedule_start_date: "2026-11-01", schedule_times: [] };
+    const created = await createStudentAction(input);
+    expect(created.ok).toBe(true);
+    const id = created.data!.id;
+    const baseline = await must(teacher.from("invoices").select("*").eq("student_id", id));
+    expect(baseline).toHaveLength(1);
+    expect(Number(baseline[0].amount)).toBe(400000);
+    expect((await updateStudentAction(id, { ...input, group_size: "8", monthly_fee: "900000" })).ok).toBe(true);
+    expect(await must(teacher.from("invoices").select("*").eq("student_id", id))).toEqual(baseline);
+    expect((await must(teacher.from("students").select("group_size").eq("id", id).single())).group_size).toBe(8);
+    expect((await updateStudentAction(id, { ...input, group_size: "1" })).ok).toBe(false);
+    expect((await updateStudentAction(id, { ...input, teaching_type: "private", group_size: "" })).ok).toBe(false);
+    expect((await teacher.from("students").update({ group_size: 1 }).eq("id", id)).error?.code).toBe("23514");
+    expect((await must(teacher.from("students").select("teaching_type,group_size").eq("id", id).single())))
+      .toEqual({ teaching_type: "group", group_size: 8 });
+  });
+
   it("identity edits cannot mutate learning, packages, schedules or invoices", async () => {
     const input = { full_name: "Murid Uji Identitas", school_level: "SD", grade_level: "4",
       learning_mode: "offline", status: "active", billing_type: "package", package_sessions: "4",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import type { SchoolLevel } from "@/lib/constants";
@@ -14,15 +14,13 @@ export default async function EditStudentPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const [{ data: student }, { data: profile }] = await Promise.all([
     supabase.from("students").select("*, parents(name, whatsapp)")
       .eq("id", id).eq("user_id", user.id).is("deleted_at", null).single(),
-    supabase.from("profiles").select("teaching_levels, timezone").eq("id", user.id).single(),
+    getCurrentProfile(user.id),
   ]);
   if (!student) notFound();
 
@@ -39,6 +37,8 @@ export default async function EditStudentPage({
         initial={{
           id: student.id,
           full_name: student.full_name,
+          teaching_type: student.teaching_type,
+          group_size: student.group_size,
           gender: (student.gender as "L" | "P" | null) ?? null,
           birth_date: student.birth_date ?? "",
           school_name: student.school_name ?? "",

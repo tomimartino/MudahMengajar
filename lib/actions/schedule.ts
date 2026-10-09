@@ -11,6 +11,7 @@ export async function cancelScheduleAction(
   scheduleId: string,
   note?: string
 ): Promise<ActionResult> {
+  if (!z.string().uuid().safeParse(scheduleId).success) return fail("Jadwal tidak valid.");
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,7 +21,7 @@ export async function cancelScheduleAction(
   const { error } = await supabase.rpc("cancel_learning_schedule", {
     p_schedule_id: scheduleId, p_note: note?.trim() || null,
   });
-  if (error) return fail(actionError(error));
+  if (error) return fail(actionError(new Error(error.message)));
 
   revalidatePath("/", "layout");
   return ok();

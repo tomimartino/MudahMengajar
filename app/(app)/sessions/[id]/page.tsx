@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MessageCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile, getCurrentSettings } from "@/lib/supabase/server";
 import { AttendanceBadge, StatusBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
 import { SessionEditForm } from "@/components/sessions/session-edit";
@@ -19,30 +19,19 @@ export default async function SessionDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
-  const tz = profile?.timezone ?? "Asia/Jakarta";
-
-  const [{ data: session }, { data: settings }] = await Promise.all([
+  const [{ data: profile }, { data: session }, { data: settings }] = await Promise.all([
+    getCurrentProfile(user!.id),
     supabase
       .from("sessions")
       .select("*, students(full_name, parents(name, whatsapp)), subjects(name), attendance(id, status, note)")
       .eq("id", id)
       .eq("user_id", user!.id)
       .single(),
-    supabase
-      .from("settings")
-      .select("message_template_report")
-      .eq("user_id", user!.id)
-      .single(),
+    getCurrentSettings(user!.id),
   ]);
+  const tz = profile?.timezone ?? "Asia/Jakarta";
   if (!session) notFound();
 
   const studentName = (session.students as unknown as { full_name: string }).full_name;

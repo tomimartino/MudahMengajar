@@ -63,6 +63,8 @@ const billingScheduleRefinement: (v: BillingScheduleValues, ctx: z.RefinementCtx
 
 const studentFields = z
   .object({
+    teaching_type: z.enum(["private", "group"]).optional().default("private"),
+    group_size: optionalText,
     full_name: z.string().trim().min(2, "Nama siswa wajib diisi."),
     gender: z.enum(["L", "P"]).optional().nullable(),
     birth_date: z.string().optional().default(""),
@@ -94,13 +96,26 @@ const studentFields = z
     schedule_start_date: optionalText,
   });
 
-export const studentSchema = studentFields.superRefine(billingScheduleRefinement);
+const groupRefinement = (v: { teaching_type: "private" | "group"; group_size: string }, ctx: z.RefinementCtx) => {
+  if (v.teaching_type === "group" && v.group_size.trim() !== "") {
+    const size = Number(v.group_size);
+    if (!Number.isInteger(size) || size < 2 || size > 1000) {
+      ctx.addIssue({ code: "custom", path: ["group_size"], message: "Jumlah murid rombel harus 2–1.000." });
+    }
+  }
+};
+
+export const studentSchema = studentFields.superRefine((v, ctx) => {
+  groupRefinement(v, ctx);
+  billingScheduleRefinement(v, ctx);
+});
 
 export const studentIdentitySchema = studentFields.pick({
+  teaching_type: true, group_size: true,
   full_name: true, gender: true, birth_date: true, school_name: true,
   school_level: true, grade_level: true, phone: true, parent_name: true,
   parent_whatsapp: true, address: true, notes: true,
-});
+}).superRefine(groupRefinement);
 
 export type StudentInput = z.infer<typeof studentSchema>;
 

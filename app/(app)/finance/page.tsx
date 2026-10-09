@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ReceiptText, TrendingUp, Wallet } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { YearFilter } from "@/components/finance/year-filter";
 import { StatCard } from "@/components/shared/stat-card";
@@ -17,13 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  aggregateInvoiceMonthly,
-  aggregateMonthly,
   MONTH_KEY_RE,
   monthLabel,
-  paymentMonthKey,
 } from "@/lib/finance/queries";
-import { loadBillingLedger } from "@/lib/finance/data";
+import { billingPage, loadBillingSummary, loadMonthPayments } from "@/lib/finance/overview";
+import { PaymentPagination } from "@/components/finance/payment-pagination";
 import { PAYMENT_METHODS, PAYMENT_TYPES } from "@/lib/constants";
 import { toDateInput, todayInTz } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -37,22 +35,17 @@ export default async function FinancePage({
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, summary] = await Promise.all([
+    getCurrentProfile(user!.id), loadBillingSummary(supabase),
+  ]);
   const tz = profile?.timezone ?? "Asia/Jakarta";
   const todayMonth = toDateInput(todayInTz(tz), tz).slice(0, 7);
   const nowYear = todayMonth.slice(0, 4);
 
-  const { invoices, payments: rows } = await loadBillingLedger(supabase, user!.id);
-  const invoiceEstimates = aggregateInvoiceMonthly(invoices, tz);
-  const aggregates = aggregateMonthly(rows);
+  const invoiceEstimates = new Map(summary.map((row) => [row.month_key, Number(row.estimated_income)]));
+  const aggregates = new Map(summary.map((row) => [row.month_key, { total: Number(row.income), count: Number(row.payment_count) }]));
   // Estimasi mengikuti jatuh tempo; pendapatan mengikuti tanggal pembayaran, termasuk lintas tahun.
   const billingYears = Array.from(
     new Set([...invoiceEstimates.keys(), ...aggregates.keys()]),
@@ -77,10 +70,9 @@ export default async function FinancePage({
   const selected = aggregates.get(month) ?? {
     total: 0,
     count: 0,
-    students: new Set<string>(),
   };
-  const selectedPayments = rows.filter((p) => paymentMonthKey(p) === month)
-    .sort((a, b) => a.payment_date.localeCompare(b.payment_date) || a.id.localeCompare(b.id));
+  const paymentPage = await loadMonthPayments(supabase, user!.id, month, billingPage(sp.page), true);
+  const selectedPayments = paymentPage.payments;
   const label = monthLabel(month);
   const monthKeys = Array.from(
     { length: 12 },
@@ -190,6 +182,7 @@ export default async function FinancePage({
           </Table>
         </div>
       )}
+      <PaymentPagination {...paymentPage} pathname="/finance" month={month} year={year} />
     </div>
   );
 }

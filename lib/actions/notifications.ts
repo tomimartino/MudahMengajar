@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { actionError, fail, ok } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/helpers";
@@ -21,7 +20,7 @@ export async function getPreviousSessionAction(scheduleId: string): Promise<Acti
   }
 }
 
-export async function refreshRemindersAction(): Promise<ActionResult> {
+export async function refreshRemindersAction(): Promise<ActionResult<number>> {
   const supabase = await createClient();
   try {
     const { error } = await supabase.rpc("refresh_reminders");
@@ -29,8 +28,10 @@ export async function refreshRemindersAction(): Promise<ActionResult> {
   } catch (e) {
     return fail(actionError(e));
   }
-  revalidatePath("/", "layout");
-  return ok();
+  const { count, error } = await supabase.from("notifications")
+    .select("id", { count: "exact", head: true }).is("read_at", null);
+  if (error) return fail(actionError(error));
+  return ok(count ?? 0);
 }
 
 export async function markNotificationReadAction(
@@ -43,7 +44,6 @@ export async function markNotificationReadAction(
     .eq("id", notificationId);
   if (error) return fail(actionError(error));
 
-  revalidatePath("/", "layout");
   return ok();
 }
 
@@ -61,6 +61,5 @@ export async function markAllNotificationsReadAction(): Promise<ActionResult> {
     .is("read_at", null);
   if (error) return fail(actionError(error));
 
-  revalidatePath("/", "layout");
   return ok();
 }

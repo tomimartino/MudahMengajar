@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { listEditablePackagesAction } from "@/lib/actions/package-edit";
 import { PageHeader } from "@/components/layout/page-header";
 import { EditPackageForm } from "@/components/students/edit-package-form";
@@ -12,11 +12,11 @@ export const metadata: Metadata = { title: "Edit Paket" };
 export default async function EditPackagePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
   const [student, profile, packages] = await Promise.all([
     supabase.from("students").select("full_name").eq("id", id).eq("user_id", user.id).is("deleted_at", null).maybeSingle(),
-    supabase.from("profiles").select("timezone").eq("id", user.id).single(),
+    getCurrentProfile(user.id),
     listEditablePackagesAction(id),
   ]);
   if (!student.data) notFound();

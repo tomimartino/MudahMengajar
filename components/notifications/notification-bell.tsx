@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BookOpen, CalendarClock, CheckCheck, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -24,16 +24,45 @@ import type { Notification } from "@/types/database.types";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell({ unreadCount }: { unreadCount: number }) {
+  const [count, setCount] = useState(unreadCount);
+  const lastSync = useRef(0);
+  const pendingSync = useRef<Promise<boolean> | null>(null);
+  const readVersion = useRef(0);
   const [items, setItems] = useState<Notification[] | null>(null);
   const [open, setOpen] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const router = useRouter();
 
+  const sync = useCallback((): Promise<boolean> => {
+    if (pendingSync.current) return pendingSync.current;
+    if (Date.now() - lastSync.current < 60_000) return Promise.resolve(true);
+    const version = readVersion.current;
+    const request = refreshRemindersAction().then((result) => {
+      if (!result.ok) return false;
+      lastSync.current = Date.now();
+      if (version === readVersion.current) setCount(result.data ?? 0);
+      return true;
+    }).catch(() => false).finally(() => { pendingSync.current = null; });
+    pendingSync.current = request;
+    return request;
+  }, []);
+
+  useEffect(() => {
+    // Update the badge after the page appears. Paused in background tabs.
+    const refresh = () => { if (document.visibilityState === "visible") void sync(); };
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [sync]);
+
   const load = useCallback(async () => {
     setLoadError(false);
     try {
-      const refreshed = await refreshRemindersAction();
-      if (!refreshed.ok) toast.error("Pengingat belum dapat diperbarui.");
+      if (!await sync()) toast.error("Pengingat belum dapat diperbarui.");
       const supabase = createClient();
       const { data, error } = await supabase.from("notifications")
         .select("*").order("created_at", { ascending: false }).limit(20);
@@ -42,7 +71,7 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
     } catch {
       setLoadError(true);
     }
-  }, []);
+  }, [sync]);
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -51,19 +80,22 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
 
   async function handleClick(item: Notification) {
     if (!item.read_at) {
+      readVersion.current += 1;
       const result = await markNotificationReadAction(item.id);
-      if (!result.ok) toast.error("Notifikasi belum dapat ditandai dibaca.");
+      if (!result.ok) { toast.error("Notifikasi belum dapat ditandai dibaca."); return; }
+      setCount((value) => Math.max(0, value - 1));
+      setItems((prev) => prev?.map((n) => n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n) ?? null);
     }
     setOpen(false);
     if (item.link) router.push(item.link);
-    router.refresh();
   }
 
   async function handleMarkAll() {
+    readVersion.current += 1;
     const result = await markAllNotificationsReadAction();
     if (!result.ok) { toast.error("Notifikasi belum dapat ditandai dibaca."); return; }
     setItems((prev) => (prev ?? []).map((n) => ({ ...n, read_at: new Date().toISOString() })));
-    router.refresh();
+    setCount(0);
   }
 
   return (
@@ -71,9 +103,9 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifikasi">
           <Bell className="size-5" />
-          {unreadCount > 0 && (
+          {count > 0 && (
             <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {count > 9 ? "9+" : count}
             </span>
           )}
         </Button>
@@ -81,7 +113,7 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
       <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
         <div className="flex items-center justify-between px-1">
           <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
-          {unreadCount > 0 && (
+          {count > 0 && (
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleMarkAll}>
               <CheckCheck className="size-3.5" /> Tandai dibaca
             </Button>

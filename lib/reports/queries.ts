@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { monthLabel } from "@/lib/finance/queries";
-import { invoiceBalances, loadBillingLedger } from "@/lib/finance/data";
 
 export interface ReportFilters {
   from: string;
@@ -54,7 +53,7 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
     .order("full_name");
   if (f.student) studentsQuery.eq("id", f.student);
 
-  const [{ data: students }, { data: links }, { data: subjects }, { data: sessions }, { data: attendance }, { data: packages }, ledger] =
+  const [{ data: students }, { data: links }, { data: subjects }, { data: sessions }, { data: attendance }, { data: packages }, balances] =
     await Promise.all([
       studentsQuery,
       supabase.from("student_subjects").select("student_id, subject_id").eq("user_id", userId),
@@ -74,7 +73,7 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
         .lte("sessions.session_date", f.to)
         .eq("sessions.status", "completed"),
       supabase.from("student_packages").select("student_id, total_sessions, sessions_used").eq("user_id", userId).eq("status", "active"),
-      loadBillingLedger(supabase, userId, f.student || undefined),
+      supabase.rpc("get_report_invoice_balances", { p_from: f.from, p_to: f.to, p_student: f.student || null }),
     ]);
 
   const subjectMap = new Map((subjects ?? []).map((s) => [s.id, s.name]));
@@ -92,12 +91,8 @@ async function buildStudentsReport(supabase: Supabase, userId: string, f: Report
   }
   const pkgMap = new Map<string, number>();
   for (const p of packages ?? []) pkgMap.set(p.student_id, p.total_sessions - p.sessions_used);
-  const openSum = new Map<string, number>();
-  const balances = invoiceBalances(ledger.invoices, ledger.payments);
-  for (const i of ledger.invoices) {
-    if (!i.due_date || i.due_date < f.from || i.due_date > f.to || i.status === "paid") continue;
-    openSum.set(i.student_id, (openSum.get(i.student_id) ?? 0) + (balances.get(i.id) ?? 0));
-  }
+  if (balances.error) throw new Error("Tagihan laporan belum dapat dimuat. Silakan coba lagi.");
+  const openSum = new Map((balances.data ?? []).map((row) => [row.student_id, Number(row.balance)]));
 
   const rows = (students ?? []).map((s) => {
     const total = sessionCount.get(s.id) ?? 0;

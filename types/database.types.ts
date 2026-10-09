@@ -176,6 +176,8 @@ export type Database = {
           id: string;
           user_id: string;
           parent_id: string | null;
+          teaching_type: "private" | "group";
+          group_size: number | null;
           full_name: string;
           gender: string | null;
           birth_date: string | null;
@@ -199,6 +201,8 @@ export type Database = {
           id?: string;
           user_id: string;
           parent_id?: string | null;
+          teaching_type?: "private" | "group";
+          group_size?: number | null;
           full_name: string;
           gender?: string | null;
           birth_date?: string | null;
@@ -220,6 +224,8 @@ export type Database = {
         };
         Update: Partial<{
           parent_id: string | null;
+          teaching_type: "private" | "group";
+          group_size: number | null;
           full_name: string;
           gender: string | null;
           birth_date: string | null;
@@ -395,6 +401,8 @@ export type Database = {
           user_id: string;
           student_id: string;
           schedule_id: string | null;
+          package_deduction_recorded: boolean;
+          deducted_package_id: string | null;
           subject_id: string | null;
           session_date: string;
           started_at: string | null;
@@ -416,6 +424,8 @@ export type Database = {
           user_id: string;
           student_id: string;
           schedule_id?: string | null;
+          package_deduction_recorded?: boolean;
+          deducted_package_id?: string | null;
           subject_id?: string | null;
           session_date: string;
           started_at?: string | null;
@@ -433,6 +443,8 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<{
+          package_deduction_recorded: boolean;
+          deducted_package_id: string | null;
           duration_minutes: number | null;
           material: string | null;
           sub_material: string | null;
@@ -691,6 +703,18 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_billing_summary: {
+        Args: Record<string, never>;
+        Returns: { month_key: string; estimated_income: number; income: number; payment_count: number; student_count: number }[];
+      };
+      get_month_invoices: {
+        Args: { p_month: string };
+        Returns: Json;
+      };
+      get_report_invoice_balances: {
+        Args: { p_from: string; p_to: string; p_student?: string | null };
+        Returns: { student_id: string; balance: number }[];
+      };
       save_student_bundle: {
         Args: { p_data: Json; p_due_date: string | null; p_period_label: string; p_schedules: Json;
           p_package_settings: Json; p_student_id?: string | null };

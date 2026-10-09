@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "@/types/database.types";
 
 export async function createClient() {
@@ -28,10 +29,26 @@ export async function createClient() {
   );
 }
 
-export async function getCurrentUser() {
+// React cache is scoped to one server render; credentials never cross requests.
+export const getCurrentUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
+});
+
+export const getCurrentProfile = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase.from("profiles").select("*").eq("id", userId).single();
+});
+
+export const getCurrentSettings = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase.from("settings").select("*").eq("user_id", userId).single();
+});
+
+export const getAccountAccess = cache(async () => {
+  const supabase = await createClient();
+  return supabase.rpc("get_account_access");
+});

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { UserPlus, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentFilters } from "@/components/students/student-filters";
 import { StudentTable, type EnrichedStudent } from "@/components/students/student-table";
@@ -28,22 +28,13 @@ export default async function StudentsPage({
   const page = Math.max(1, Number(typeof sp.page === "string" ? sp.page : "1") || 1);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, { data: subjects }] = await Promise.all([
+    getCurrentProfile(user!.id),
+    supabase.from("subjects").select("id, name").eq("user_id", user!.id).order("name"),
+  ]);
   const tz = profile?.timezone ?? "Asia/Jakarta";
-
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("id, name")
-    .eq("user_id", user!.id)
-    .order("name");
 
   const studentActions = (
     <div className="flex w-full gap-2 sm:w-auto">
@@ -202,6 +193,8 @@ export default async function StudentsPage({
     return {
       id: s.id,
       full_name: s.full_name,
+      teaching_type: s.teaching_type,
+      group_size: s.group_size,
       school_level: s.school_level,
       grade_level: s.grade_level,
       school_name: s.school_name,

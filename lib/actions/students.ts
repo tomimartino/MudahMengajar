@@ -64,7 +64,10 @@ async function saveStudentBundle(
   const { data, error } = await supabase.rpc("save_student_bundle", {
     p_student_id: studentId,
     p_data: {
-      ...d, gender: d.gender ?? null,
+      ...d, gender: d.teaching_type === "group" ? null : d.gender ?? null,
+      birth_date: d.teaching_type === "group" ? "" : d.birth_date,
+      phone: d.teaching_type === "group" ? "" : d.phone,
+      group_size: d.teaching_type === "group" && d.group_size.trim() !== "" ? Number(d.group_size) : null,
       per_session_rate: d.billing_type === "per_session" ? parseAmount(d.per_session_rate) : null,
       monthly_fee: d.billing_type === "monthly" ? parseAmount(d.monthly_fee) : null,
       monthly_due_day: d.billing_type === "monthly" ? Number(d.monthly_due_day) : null,
@@ -134,7 +137,10 @@ export async function updateStudentAction(
     if (duplicateError) return fail("Nama murid belum dapat diperiksa. Silakan coba lagi.");
     if (duplicate) return fail(DUPLICATE_STUDENT_MESSAGE);
     const { error } = await supabase.rpc("update_student_identity", {
-      p_student_id: studentId, p_data: { ...d, gender: d.gender ?? null },
+      p_student_id: studentId, p_data: { ...d, gender: d.teaching_type === "group" ? null : d.gender ?? null,
+        birth_date: d.teaching_type === "group" ? "" : d.birth_date,
+        phone: d.teaching_type === "group" ? "" : d.phone,
+        group_size: d.teaching_type === "group" && d.group_size.trim() !== "" ? Number(d.group_size) : null },
     });
     if (error) throw error;
 
@@ -164,7 +170,7 @@ export async function addPackageAction(
     const { data: student } = await supabase
       .from("students")
       .select(
-        "full_name, gender, birth_date, school_name, school_level, grade_level, phone, address, notes, parents(name, whatsapp)"
+        "full_name, teaching_type, group_size, gender, birth_date, school_name, school_level, grade_level, phone, address, notes, parents(name, whatsapp)"
       )
       .eq("id", studentId)
       .eq("user_id", user.id)
@@ -178,6 +184,8 @@ export async function addPackageAction(
     const parsed = studentSchema.safeParse({
       ...(input as Record<string, unknown>),
       full_name: student.full_name,
+      teaching_type: student.teaching_type ?? "private",
+      group_size: student.group_size != null ? String(student.group_size) : "",
       gender: student.gender ?? null,
       birth_date: student.birth_date ?? "",
       school_name: student.school_name ?? "",

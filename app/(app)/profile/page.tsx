@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MapPin, MessageCircle, Wallet } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,17 +18,11 @@ export const metadata: Metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [{ data: profile }, { data: subjects }, { data: experiences }, { data: achievements }] =
     await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user!.id)
-        .single(),
+      getCurrentProfile(user!.id),
       supabase.from("subjects").select("id, name").eq("user_id", user!.id).order("name"),
       supabase
         .from("teaching_experiences")

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { PaymentsTabContent } from "@/components/payments/payments-tab";
+import { billingPage } from "@/lib/finance/overview";
 
 export const metadata: Metadata = { title: "Pembayaran" };
 
@@ -17,7 +18,7 @@ export default async function PaymentsPage({
       <PageHeader
         title="Pembayaran"
       />
-      <PaymentsTabContent month={month} />
+      <PaymentsTabContent month={month} page={billingPage(sp.page)} />
     </div>
   );
 }

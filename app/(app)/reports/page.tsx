@@ -2,7 +2,7 @@ import { resolveReportFilters } from "@/lib/reports/filters";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Download, FileBarChart } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { ReportFilters } from "@/components/reports/report-filters";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -41,21 +41,17 @@ export default async function ReportsPage({
     : "students";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, full_name")
-    .eq("user_id", user!.id)
-    .is("deleted_at", null)
-    .order("full_name");
+  const studentsRequest = supabase.from("students").select("id, full_name")
+    .eq("user_id", user!.id).is("deleted_at", null).order("full_name");
 
-  const { data: profile } = await supabase.from("profiles").select("timezone").eq("id", user!.id).single();
+  const { data: profile } = await getCurrentProfile(user!.id);
   const { from, to, student } = resolveReportFilters(sp, profile?.timezone ?? "Asia/Jakarta");
 
-  const report = await buildReport(supabase, user!.id, type, { from, to, student });
+  const [{ data: students }, report] = await Promise.all([
+    studentsRequest, buildReport(supabase, user!.id, type, { from, to, student }),
+  ]);
 
   const exportHref = `/reports/export?type=${type}&from=${from}&to=${to}${student ? `&student=${student}` : ""}`;
 

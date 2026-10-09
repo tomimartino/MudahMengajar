@@ -18,7 +18,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile, getCurrentSettings } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { DateText } from "@/components/shared/date-text";
@@ -57,24 +57,15 @@ export default async function DashboardPage({
     : format(new Date(), "yyyy-MM-dd");
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, timezone")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, { data: settings }, { data: statsData }] = await Promise.all([
+    getCurrentProfile(user!.id),
+    getCurrentSettings(user!.id),
+    supabase.rpc("get_dashboard_stats"),
+  ]);
   const tz = profile?.timezone ?? "Asia/Jakarta";
 
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("default_duration_minutes")
-    .eq("user_id", user!.id)
-    .single();
-
-  const { data: statsData } = await supabase.rpc("get_dashboard_stats");
   const stats = (statsData ?? {
     schedules_today: 0,
     active_students: 0,
@@ -129,24 +120,13 @@ export default async function DashboardPage({
   if (scheduleIds.length > 0) {
     const { data: sessionRows } = await supabase
       .from("sessions")
-      .select("id, schedule_id, material, sub_material, learning_notes, homework, homework_due_date, score, progress_notes")
+      .select("id, schedule_id, material, sub_material, learning_notes, homework, homework_due_date, score, progress_notes, attendance(status)")
       .in("schedule_id", scheduleIds);
-    const sessionIds = (sessionRows ?? []).map((r) => r.id);
-    const statusBySession = new Map<string, string>();
-    if (sessionIds.length > 0) {
-      const { data: attendanceRows } = await supabase
-        .from("attendance")
-        .select("session_id, status")
-        .in("session_id", sessionIds);
-      for (const a of attendanceRows ?? []) {
-        if (a.session_id) statusBySession.set(a.session_id, a.status);
-      }
-    }
     for (const r of sessionRows ?? []) {
       if (r.schedule_id) {
         sessionsBySchedule.set(r.schedule_id, {
           ...r,
-          attendance_status: statusBySession.get(r.id) ?? null,
+          attendance_status: (r.attendance as unknown as { status: string }[])[0]?.status ?? null,
         });
       }
     }

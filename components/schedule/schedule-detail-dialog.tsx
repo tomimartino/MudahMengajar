@@ -66,28 +66,38 @@ export function ScheduleDetailDialog({
 
   async function handleCancel() {
     setPending(true);
-    const result = await cancelScheduleAction(schedule.id, cancelNote);
-    setPending(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await cancelScheduleAction(schedule.id, cancelNote);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Jadwal dibatalkan.");
+      onOpenChange(false);
+      router.refresh();
+    } catch {
+      toast.error("Jadwal belum dapat dibatalkan. Silakan coba lagi.");
+    } finally {
+      setPending(false);
     }
-    toast.success("Jadwal dibatalkan. Pertemuan dan harga paket dikurangi.");
-    onOpenChange(false);
-    router.refresh();
   }
 
   async function handleSwitch() {
     setSwitchPending(true);
-    const result = await switchScheduleAction(schedule.id, { date: switchDate, time: switchTime });
-    setSwitchPending(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await switchScheduleAction(schedule.id, { date: switchDate, time: switchTime });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Jadwal dipindahkan.");
+      onOpenChange(false);
+      router.refresh();
+    } catch {
+      toast.error("Jadwal belum dapat dipindahkan. Silakan coba lagi.");
+    } finally {
+      setSwitchPending(false);
     }
-    toast.success("Jadwal dipindahkan.");
-    onOpenChange(false);
-    router.refresh();
   }
 
   return (
@@ -172,16 +182,18 @@ export function ScheduleDetailDialog({
           {confirmCancel && (
             <div className="space-y-3 rounded-lg border p-3">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Keterangan (opsional)</p>
+                <label htmlFor="cancel-schedule-note" className="text-xs text-muted-foreground">Keterangan (opsional)</label>
                 <Textarea
+                  id="cancel-schedule-note"
                   rows={2}
                   placeholder="Alasan pembatalan..."
                   value={cancelNote}
+                  disabled={pending}
                   onChange={(e) => setCancelNote(e.target.value)}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setConfirmCancel(false)}>
+                <Button variant="outline" size="sm" disabled={pending} onClick={() => setConfirmCancel(false)}>
                   Batal
                 </Button>
                 <Button
@@ -198,7 +210,7 @@ export function ScheduleDetailDialog({
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {schedule.status === "completed" && onEdit && (
-            <Button variant="outline" size="sm" onClick={onEdit}>
+            <Button variant="outline" size="sm" disabled={pending || switchPending} onClick={onEdit}>
               <Pencil className="size-4" /> Isi Materi
             </Button>
           )}
@@ -211,7 +223,7 @@ export function ScheduleDetailDialog({
               <Button
                 variant="outline"
                 size="sm"
-                disabled={switchPending}
+                disabled={pending || switchPending}
                 onClick={() => {
                   setConfirmCancel(false);
                   setSwitchOpen(!switchOpen);
@@ -220,10 +232,11 @@ export function ScheduleDetailDialog({
                 <ArrowLeftRight className="size-4" /> Pindah Jadwal
               </Button>
           )}
-          {schedule.status === "scheduled" && (
+          {(schedule.status === "scheduled" || schedule.status === "completed") && (
               <Button
                 variant="destructive"
                 size="sm"
+                disabled={pending || switchPending}
                 onClick={() => {
                   setSwitchOpen(false);
                   setConfirmCancel(!confirmCancel);

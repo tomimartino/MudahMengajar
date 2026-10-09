@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle, Package, Pencil } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/shared/badges";
 import { StudentActions } from "@/components/students/student-actions";
+import { AddPackageButton } from "@/components/students/add-package-dialog";
 import {
   NotesTab,
   OverviewTab,
@@ -44,33 +45,21 @@ export default async function StudentDetailPage({
   const activeTab = TABS.some((t) => t.key === tab) ? (tab as (typeof TABS)[number]["key"]) : "overview";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, { data: student }, { data: links }, { data: portalLink, error: portalError }] = await Promise.all([
+    getCurrentProfile(user!.id),
+    supabase.from("students").select("*, parents(name, whatsapp)")
+      .eq("id", id).eq("user_id", user!.id).is("deleted_at", null).single(),
+    supabase.from("student_subjects").select("subject_id, subjects(name)").eq("student_id", id),
+    supabase.from("portal_links").select("expires_at,revoked_at")
+      .eq("student_id", id).eq("user_id", user!.id).maybeSingle(),
+  ]);
   const tz = profile?.timezone ?? "Asia/Jakarta";
 
-  const { data: student } = await supabase
-    .from("students")
-    .select("*, parents(name, whatsapp)")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .single();
   if (!student) notFound();
 
-  const { data: links } = await supabase
-    .from("student_subjects")
-    .select("subject_id, subjects(name)")
-    .eq("student_id", id);
-
   const parent = student.parents as unknown as { name: string; whatsapp: string } | null;
-  const { data: portalLink, error: portalError } = await supabase.from("portal_links")
-    .select("expires_at,revoked_at").eq("student_id", id).eq("user_id", user!.id).maybeSingle();
   if (portalError) throw new Error("Akses portal belum dapat dimuat.");
   const portalActive = Boolean(portalLink && !portalLink.revoked_at && Date.parse(portalLink.expires_at) > new Date().getTime());
 
@@ -93,6 +82,7 @@ export default async function StudentDetailPage({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{student.full_name}</h1>
+              <Badge variant="outline">{student.teaching_type === "group" ? `Rombel${student.group_size != null ? ` · ${student.group_size} murid` : ""}` : "Privat"}</Badge>
               {student.status === "active" ? (
                 <StatusBadge tone="green">Aktif</StatusBadge>
               ) : (
@@ -115,6 +105,10 @@ export default async function StudentDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <AddPackageButton student={{ id: student.id, full_name: student.full_name,
+            school_level: student.school_level, grade_level: student.grade_level,
+            school_name: student.school_name, status: student.status,
+            teaching_type: student.teaching_type, group_size: student.group_size }} />
           {parent?.whatsapp && (
             <Button asChild variant="outline" size="sm">
               <a

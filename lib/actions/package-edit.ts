@@ -45,7 +45,7 @@ export async function getEditPackageSetupAction(studentId: string, packageId: st
   const [pkg, student, subjects, profile] = await Promise.all([
     supabase.from("student_packages").select("*").eq("id", packageId).eq("student_id", studentId)
       .eq("user_id", user.id).neq("status", "cancelled").maybeSingle(),
-    supabase.from("students").select("id, full_name, status").eq("id", studentId)
+    supabase.from("students").select("id, full_name, status, teaching_type, group_size").eq("id", studentId)
       .eq("user_id", user.id).is("deleted_at", null).maybeSingle(),
     supabase.from("subjects").select("id, name").eq("user_id", user.id).order("name"),
     supabase.from("profiles").select("timezone").eq("id", user.id).single(),
@@ -66,6 +66,7 @@ export async function getEditPackageSetupAction(studentId: string, packageId: st
   }
   return ok({
     initial: { ...settings, id: studentId, full_name: student.data.full_name, status: student.data.status,
+      teaching_type: student.data.teaching_type, group_size: student.data.group_size,
       billing_type: "package", package_sessions: pkg.data.total_sessions,
       package_per_session_rate: String(pkg.data.per_session_rate ?? Math.round(Number(pkg.data.price) / pkg.data.total_sessions)),
       package_price: String(pkg.data.price), package_start_date: settings.schedule_start_date },

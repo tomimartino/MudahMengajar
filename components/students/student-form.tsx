@@ -54,6 +54,8 @@ import { DUPLICATE_STUDENT_MESSAGE } from "@/lib/utils/student-name";
 
 export interface StudentFormInitial {
   id?: string;
+  teaching_type?: "private" | "group";
+  group_size?: number | null;
   full_name?: string;
   gender?: "L" | "P" | null;
   birth_date?: string;
@@ -154,6 +156,8 @@ export function StudentForm({
       ? zodResolver(packageFormSchema)
       : zodResolver(studentSchema)) as unknown as Resolver<StudentInput>,
     defaultValues: {
+      teaching_type: initial?.teaching_type ?? "private",
+      group_size: initial?.group_size != null ? String(initial.group_size) : "",
       full_name: initial?.full_name ?? "",
       gender: (initial?.gender as "L" | "P" | null) ?? null,
       birth_date: initial?.birth_date ?? "",
@@ -195,6 +199,7 @@ export function StudentForm({
   });
 
   const billingType = form.watch("billing_type");
+  const isGroup = form.watch("teaching_type") === "group";
   const schoolLevel = form.watch("school_level") as SchoolLevel;
   const subjectIds = form.watch("subject_ids");
   const scheduleTimes = form.watch("schedule_times") ?? [];
@@ -313,7 +318,7 @@ export function StudentForm({
     toast.success(
       isEdit
         ? "Data siswa berhasil diperbarui."
-        : "Siswa berhasil ditambahkan. Tagihan & jadwal otomatis dibuat."
+        : isGroup ? "Rombongan belajar berhasil ditambahkan." : "Siswa berhasil ditambahkan. Tagihan & jadwal otomatis dibuat."
     );
     if (isEdit) {
       router.push(`/students/${initial!.id}`);
@@ -326,23 +331,50 @@ export function StudentForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {!isEdit && !isPackageMode && (
+          <fieldset className="rounded-xl border bg-card p-5" disabled={pending}>
+            <legend className="px-1 text-sm font-semibold">Jenis belajar</legend>
+            <FormField control={form.control} name="teaching_type" render={({ field }) => (
+              <FormItem>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {([{ value: "private", label: "Privat" }, { value: "group", label: "Rombongan Belajar" }] as const).map((option) => (
+                    <label key={option.value} className={cn("flex cursor-pointer items-center gap-3 rounded-xl border p-4 font-medium transition-colors focus-within:ring-2 focus-within:ring-ring",
+                      field.value === option.value ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/50")}>
+                      <input type="radio" name={field.name} value={option.value} checked={field.value === option.value}
+                        onChange={() => { field.onChange(option.value); form.clearErrors("group_size"); }} className="size-4 accent-primary" />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </fieldset>
+        )}
         {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
-          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">IDENTITAS SISWA</h2>
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{isGroup ? "IDENTITAS ROMBONGAN BELAJAR" : "IDENTITAS SISWA"}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="full_name"
               render={({ field }) => (
                 <FormItem className="sm:col-span-2">
-                  <FormLabel>Nama siswa *</FormLabel>
+                  <FormLabel>{isGroup ? "Nama rombongan belajar *" : "Nama siswa *"}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Contoh: Andi Pratama" {...field} />
+                    <Input placeholder={isGroup ? "Contoh: Rombel Matematika Kelas 4A" : "Contoh: Andi Pratama"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {isGroup ? <FormField control={form.control} name="group_size" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Jumlah murid (opsional)</FormLabel>
+                <FormControl><Input type="number" min={2} max={1000} inputMode="numeric" placeholder="Contoh: 6" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} /> : <>
             <FormField
               control={form.control}
               name="gender"
@@ -397,6 +429,7 @@ export function StudentForm({
                 </FormItem>
               )}
             />
+            </>}
             <FormField
               control={form.control}
               name="address"
@@ -404,7 +437,7 @@ export function StudentForm({
                 <FormItem className="sm:col-span-2">
                   <FormLabel>Alamat</FormLabel>
                   <FormControl>
-                    <Textarea rows={2} placeholder="Alamat rumah siswa" {...field} />
+                    <Textarea rows={2} placeholder={isGroup ? "Alamat rombongan belajar" : "Alamat rumah siswa"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -492,14 +525,14 @@ export function StudentForm({
 
         {!isPackageMode && (
         <section className="rounded-xl border bg-card p-5">
-          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">ORANG TUA / WALI</h2>
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{isGroup ? "PENANGGUNG JAWAB" : "ORANG TUA / WALI"}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="parent_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nama orang tua / wali</FormLabel>
+                  <FormLabel>{isGroup ? "Nama penanggung jawab" : "Nama orang tua / wali"}</FormLabel>
                   <FormControl>
                     <Input placeholder="Contoh: Bapak Hendra" {...field} />
                   </FormControl>
@@ -512,7 +545,7 @@ export function StudentForm({
               name="parent_whatsapp"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nomor WhatsApp wali *</FormLabel>
+                  <FormLabel>{isGroup ? "Nomor WhatsApp penanggung jawab" : "Nomor WhatsApp wali *"}</FormLabel>
                   <FormControl>
                     <Input placeholder="08xxxxxxxxxx" inputMode="tel" {...field} />
                   </FormControl>
@@ -647,7 +680,7 @@ export function StudentForm({
                   name="package_per_session_rate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tarif per pertemuan *</FormLabel>
+                      <FormLabel>{isGroup ? "Tarif rombel per pertemuan *" : "Tarif per pertemuan *"}</FormLabel>
                       <FormControl>
                         <Input placeholder="100.000" inputMode="numeric" {...field} />
                       </FormControl>
@@ -660,7 +693,7 @@ export function StudentForm({
                   name="package_price"
                   render={({ field }) => (
                     <FormItem className="sm:col-start-2">
-                      <FormLabel>Harga paket</FormLabel>
+                      <FormLabel>{isGroup ? "Harga paket rombel" : "Harga paket"}</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="1.200.000"
@@ -685,7 +718,7 @@ export function StudentForm({
                 name="monthly_fee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Biaya per bulan *</FormLabel>
+                    <FormLabel>{isGroup ? "Biaya rombel per bulan *" : "Biaya per bulan *"}</FormLabel>
                     <FormControl>
                       <Input placeholder="500.000" inputMode="numeric" {...field} />
                     </FormControl>
@@ -848,7 +881,7 @@ export function StudentForm({
               <FormItem>
                 <FormLabel>Catatan</FormLabel>
                 <FormControl>
-                  <Textarea rows={3} placeholder="Catatan khusus tentang siswa..." {...field} />
+                  <Textarea rows={3} placeholder={isGroup ? "Catatan rombongan belajar..." : "Catatan khusus tentang siswa..."} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -862,7 +895,7 @@ export function StudentForm({
             Batal
           </Button>
           <SubmitButton pending={pending} loadingText="Menyimpan...">
-            {isPackageEdit ? "Simpan Perubahan" : isPackageMode ? "Simpan Paket" : isEdit ? "Simpan Perubahan" : "Tambah Siswa"}
+            {isPackageEdit ? "Simpan Perubahan" : isPackageMode ? "Simpan Paket" : isEdit ? "Simpan Perubahan" : isGroup ? "Tambah Rombongan Belajar" : "Tambah Siswa"}
           </SubmitButton>
         </div>
       </form>

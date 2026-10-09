@@ -1,7 +1,8 @@
 import { ReceiptText, Wallet } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { loadBillingLedger } from "@/lib/finance/data";
-import { invoiceMonthKey, MONTH_KEY_RE, paymentMonthKey } from "@/lib/finance/queries";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
+import { loadBillingSummary, loadMonthInvoices, loadMonthPayments } from "@/lib/finance/overview";
+import { MONTH_KEY_RE } from "@/lib/finance/queries";
+import { PaymentPagination } from "@/components/finance/payment-pagination";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -31,17 +32,11 @@ const PAYMENT_TYPES: Record<string, string> = {
   other: "Lainnya",
 };
 
-export async function PaymentsTabContent({ month }: { month?: string }) {
+export async function PaymentsTabContent({ month, page = 1 }: { month?: string; page?: number }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
+  const { data: profile } = await getCurrentProfile(user!.id);
   const tz = profile?.timezone ?? "Asia/Jakarta";
   const today = toDateInput(todayInTz(tz), tz);
   const todayMonth = today.slice(0, 7);
@@ -50,7 +45,7 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
   const selectedMonth = typeof month === "string" && MONTH_KEY_RE.test(month) ? month : todayMonth;
   const selYear = Number(selectedMonth.slice(0, 4));
 
-  const [{ data: students }, ledger] =
+  const [{ data: students }, summary, invoices, paymentPage] =
     await Promise.all([
       supabase
         .from("students")
@@ -58,34 +53,24 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .order("full_name"),
-      loadBillingLedger(supabase, user!.id),
+      loadBillingSummary(supabase),
+      loadMonthInvoices(supabase, selectedMonth),
+      loadMonthPayments(supabase, user!.id, selectedMonth, page),
     ]);
 
   // Tagihan mengikuti jatuh tempo; transaksi mengikuti tanggal pembayaran yang dipilih guru.
-  const invoices = ledger.invoices.filter((i) => invoiceMonthKey(i, tz) === selectedMonth)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
-  const payments = ledger.payments.filter((p) => paymentMonthKey(p) === selectedMonth)
-    .sort((a, b) => b.payment_date.localeCompare(a.payment_date) || b.id.localeCompare(a.id));
-  const billingYears = [
-    ...ledger.invoices.map((i) => Number(invoiceMonthKey(i, tz).slice(0, 4))),
-    ...ledger.payments.map((p) => Number(paymentMonthKey(p).slice(0, 4))),
-  ];
+  const payments = paymentPage.payments;
+  const billingYears = summary.map((row) => Number(row.month_key.slice(0, 4)));
   const minYear = Math.min(...billingYears, Number(todayMonth.slice(0, 4)), selYear);
   const maxYear = Math.max(...billingYears, Number(todayMonth.slice(0, 4)), selYear);
   const years: string[] = [];
   for (let y = maxYear; y >= minYear; y--) years.push(String(y));
 
-  const paidByInvoice = new Map<string, number>();
-  for (const p of ledger.payments) {
-    if (!p.invoice_id) continue;
-    paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) ?? 0) + Number(p.amount));
-  }
-
   const invoiceList = invoices.map((i) => {
     return {
       ...i,
       student_name: i.students?.full_name ?? "—",
-      paid_amount: paidByInvoice.get(i.id) ?? 0,
+      paid_amount: Number(i.paid_amount),
     };
   });
 
@@ -200,7 +185,7 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
                     <DateText value={p.payment_date} tz={tz} />
                   </TableCell>
                   <TableCell className="font-medium">
-                    {(p.students as unknown as { full_name: string }).full_name}
+                    {p.students?.full_name ?? "—"}
                   </TableCell>
                   <TableCell>{PAYMENT_TYPES[p.type] ?? p.type}</TableCell>
                   <TableCell>
@@ -216,6 +201,7 @@ export async function PaymentsTabContent({ month }: { month?: string }) {
           </Table>
         </div>
       )}
+      <PaymentPagination {...paymentPage} pathname="/payments" month={selectedMonth} />
     </div>
   );
 }

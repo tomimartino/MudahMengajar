@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ReceiptText } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile, getCurrentSettings } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { DateText } from "@/components/shared/date-text";
 import { AmountText } from "@/components/shared/amount-text";
@@ -44,22 +44,12 @@ export default async function InvoicePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [{ data: profile }, { data: settings }, { data: invoice }, { data: payments }] =
     await Promise.all([
-      supabase
-        .from("profiles")
-        .select("business_name, full_name, whatsapp, address, timezone")
-        .eq("id", user!.id)
-        .single(),
-      supabase
-        .from("settings")
-        .select("message_template_invoice")
-        .eq("user_id", user!.id)
-        .single(),
+      getCurrentProfile(user!.id),
+      getCurrentSettings(user!.id),
       supabase
         .from("invoices")
         .select("*, students(full_name, parents(name, whatsapp))")

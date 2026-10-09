@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentSettings, getAccountAccess } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { BillingSettingsForm } from "@/components/settings/billing-settings-form";
 import { ChatTemplatesForm } from "@/components/settings/chat-templates-form";
@@ -17,19 +17,13 @@ export const metadata: Metadata = { title: "Pengaturan" };
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("*")
-    .eq("user_id", user!.id)
-    .single();
-
-  const { data: review, error: reviewError } = await supabase.from("app_reviews")
-    .select("*").eq("user_id", user!.id).maybeSingle();
-  const { data: accountAccess } = await supabase.rpc("get_account_access");
+  const [{ data: settings }, { data: review, error: reviewError }, { data: accountAccess }] = await Promise.all([
+    getCurrentSettings(user!.id),
+    supabase.from("app_reviews").select("*").eq("user_id", user!.id).maybeSingle(),
+    getAccountAccess(),
+  ]);
 
   return (
     <div>

@@ -78,7 +78,7 @@ export async function updateSessionAction(
       score: d.score === null ? null : String(d.score),
       progress_notes: d.progress_notes.trim() || null,
     })
-    .eq("id", sessionId).eq("user_id", user.id).select("id").maybeSingle();
+    .eq("id", sessionId).eq("user_id", user.id).eq("status", "completed").select("id").maybeSingle();
   if (error) return fail(actionError(error));
   if (!data) return fail("Pertemuan tidak ditemukan atau sudah dihapus.");
 
@@ -128,6 +128,7 @@ export async function saveSessionForScheduleAction(
     .select("id, student_id, subject_id, start_at, end_at")
     .eq("id", scheduleId)
     .eq("user_id", user.id)
+    .eq("status", "completed")
     .single();
   if (scheduleError || !schedule) return fail("Jadwal tidak ditemukan.");
 

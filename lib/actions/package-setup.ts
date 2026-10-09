@@ -15,6 +15,8 @@ export interface PackageStudent {
   grade_level: string;
   school_name: string | null;
   status: string;
+  teaching_type?: "private" | "group";
+  group_size?: number | null;
 }
 
 export interface PackageFormSetup {
@@ -35,7 +37,7 @@ export async function listPackageStudentsAction(): Promise<ActionResult<PackageS
   const batchSize = 500;
   for (let offset = 0; ; offset += batchSize) {
     const { data, error } = await supabase.from("students")
-      .select("id, full_name, school_level, grade_level, school_name, status")
+      .select("id, full_name, school_level, grade_level, school_name, status, teaching_type, group_size")
       .eq("user_id", user.id).is("deleted_at", null)
       .order("full_name").order("id").range(offset, offset + batchSize - 1);
     if (error) return fail("Daftar murid belum dapat dimuat. Silakan coba lagi.");
@@ -53,7 +55,7 @@ export async function getPackageFormSetupAction(studentId: string): Promise<Acti
   if (!user) return fail("Silakan masuk kembali.");
 
   const { data: student, error: studentError } = await supabase.from("students")
-    .select("id, full_name, learning_mode, status")
+    .select("id, full_name, learning_mode, status, teaching_type, group_size")
     .eq("id", studentId).eq("user_id", user.id).is("deleted_at", null).maybeSingle();
   if (studentError) return fail("Data murid belum dapat dimuat. Silakan coba lagi.");
   if (!student) return fail("Murid tidak ditemukan.");
@@ -79,6 +81,8 @@ export async function getPackageFormSetupAction(studentId: string): Promise<Acti
     initial: {
       id: student.id,
       full_name: student.full_name,
+      teaching_type: student.teaching_type,
+      group_size: student.group_size,
       learning_mode: student.learning_mode,
       billing_type: "package",
       package_sessions: activePackage.data?.total_sessions ?? null,

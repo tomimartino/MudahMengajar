@@ -34,6 +34,7 @@ export function StudentCard({
             {student.school_level === "Umum" ? "Umum" : `Kelas ${student.grade_level} ${student.school_level}`}
             {student.school_name ? ` · ${student.school_name}` : ""}
           </p>
+          {student.teaching_type === "group" && <Badge variant="outline" className="mt-1 text-xs">Rombel{student.group_size != null && ` · ${student.group_size} murid`}</Badge>}
         </Link>
         <StudentActions studentId={student.id} studentName={student.full_name} status={student.status} />
       </div>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile, getCurrentSettings } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -12,9 +12,7 @@ export const metadata: Metadata = { title: "Tambah Siswa" };
 
 export default async function NewStudentPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [{ data: subjects }, { data: profile }, { data: settings }] = await Promise.all([
     supabase
@@ -22,16 +20,8 @@ export default async function NewStudentPage() {
       .select("id, name")
       .eq("user_id", user!.id)
       .order("name"),
-    supabase
-      .from("profiles")
-      .select("teaching_levels, learning_mode, timezone")
-      .eq("id", user!.id)
-      .single(),
-    supabase
-      .from("settings")
-      .select("default_duration_minutes")
-      .eq("user_id", user!.id)
-      .single(),
+    getCurrentProfile(user!.id),
+    getCurrentSettings(user!.id),
   ]);
 
   if (!subjects || subjects.length === 0) {

@@ -129,6 +129,20 @@ describe("student duplicate validation", () => {
 });
 
 describe("student-first package flow", () => {
+  it("uses the stored group identity when adding a package, ignoring submitted identity changes", async () => {
+    mock.results = {
+      students: { data: { ...validInput, id: studentId, teaching_type: "group", group_size: 6 }, error: null },
+      profiles: { data: { timezone: "Asia/Jakarta" }, error: null },
+      settings: { data: { default_duration_minutes: 60 }, error: null },
+    };
+    const result = await addPackageAction(studentId, { ...validInput, teaching_type: "private", group_size: "100",
+      billing_type: "package", package_sessions: "4", package_per_session_rate: "75000", package_price: "300000",
+      schedule_start_date: "2026-11-01" });
+    expect(result.ok).toBe(true);
+    expect(mock.rpc).toHaveBeenCalledWith("save_student_bundle", expect.objectContaining({
+      p_student_id: studentId, p_data: expect.objectContaining({ teaching_type: "group", group_size: 6, package_price: 300000 }),
+    }));
+  });
   it("only lists the signed-in teacher's nondeleted students", async () => {
     mock.results.students = { data: [{ id: studentId, full_name: "Nama Murid" }], error: null };
     expect((await listPackageStudentsAction()).data).toHaveLength(1);

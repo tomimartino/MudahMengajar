@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -66,7 +65,6 @@ export function PaymentDialog({
   initialStudentId?: string;
   initialInvoiceId?: string;
 }) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   const form = useForm<PaymentInput>({
@@ -137,7 +135,6 @@ export function PaymentDialog({
       method: "cash",
       notes: "",
     });
-    router.refresh();
   }
 
   const selectedInvoice = invoiceId ? invoices.find((i) => i.id === invoiceId) : null;

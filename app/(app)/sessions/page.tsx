@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { AttendanceBadge } from "@/components/shared/badges";
 import { DateText } from "@/components/shared/date-text";
@@ -39,15 +39,9 @@ export default async function SessionsPage({
       : toDateInput(todayInTz("Asia/Jakarta"), "Asia/Jakarta").slice(0, 7);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user!.id)
-    .single();
+  const { data: profile } = await getCurrentProfile(user!.id);
   const tz = profile?.timezone ?? "Asia/Jakarta";
 
   const [year, monthNum] = month.split("-").map(Number);
@@ -57,7 +51,7 @@ export default async function SessionsPage({
   );
   const monthEnd = toDateInput(endOfMonthTz(new Date(year, monthNum - 1, 1), tz), tz);
 
-  const [{ data: students }, { data: sessions }, { data: attendance }] = await Promise.all([
+  const [{ data: students }, { data: sessions }] = await Promise.all([
     supabase
       .from("students")
       .select("id, full_name")
@@ -66,17 +60,18 @@ export default async function SessionsPage({
       .order("full_name"),
     supabase
       .from("sessions")
-      .select("id, student_id, session_date, duration_minutes, material, students(full_name), subjects(name)")
+      .select("id, student_id, session_date, duration_minutes, material, students(full_name), subjects(name), attendance(status)")
       .eq("user_id", user!.id)
       .eq("status", "completed")
       .gte("session_date", monthStart)
       .lte("session_date", monthEnd)
       .order("session_date", { ascending: false })
       .limit(500),
-    supabase.from("attendance").select("session_id, status").eq("user_id", user!.id),
   ]);
 
-  const attMap = new Map((attendance ?? []).map((a) => [a.session_id, a.status]));
+  const attMap = new Map((sessions ?? []).map((s) => [s.id,
+    (s.attendance as unknown as { status: string }[])[0]?.status,
+  ]));
   const filtered = studentId ? (sessions ?? []).filter((s) => s.student_id === studentId) : (sessions ?? []);
 
   const monthOptions = buildMonthOptions(month);

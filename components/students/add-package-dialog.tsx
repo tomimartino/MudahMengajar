@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export function AddPackageButton() {
+export function AddPackageButton({ student }: { student?: PackageStudent }) {
   const router = useRouter();
   const requestId = useRef(0);
   const [open, setOpen] = useState(false);
@@ -45,13 +45,16 @@ export function AddPackageButton() {
   function changeOpen(value: boolean) {
     ++requestId.current;
     setOpen(value);
-    setSelected(null);
+    setSelected(student ?? null);
     setSetup(null);
     setStudents(null);
     setSearch("");
     setError("");
     setLoading(false);
-    if (value) void loadStudents();
+    if (value) {
+      if (student) void selectStudent(student);
+      else void loadStudents();
+    }
   }
 
   async function selectStudent(student: PackageStudent) {
@@ -103,7 +106,7 @@ export function AddPackageButton() {
                 <p className="text-xs text-muted-foreground">{studentClass(selected)}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={changeStudent}>Ganti Murid</Button>
+            {!student && <Button variant="ghost" size="sm" onClick={changeStudent}>Ganti Murid</Button>}
           </div>
         ) : students && students.length > 0 ? (
           <div className="relative">
@@ -158,5 +161,6 @@ export function AddPackageButton() {
 }
 
 function studentClass(student: PackageStudent) {
-  return student.school_level === "Umum" ? "Umum" : `Kelas ${student.grade_level} ${student.school_level}`;
+  const level = student.school_level === "Umum" ? "Umum" : `Kelas ${student.grade_level} ${student.school_level}`;
+  return student.teaching_type === "group" ? `Rombel${student.group_size != null ? ` · ${student.group_size} murid` : ""} · ${level}` : level;
 }
